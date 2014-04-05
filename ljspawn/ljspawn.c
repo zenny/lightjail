@@ -2,6 +2,8 @@
 #include <sys/param.h>
 #include <sys/jail.h>
 #include <sys/wait.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -16,6 +18,8 @@
 char *app = NULL;
 char *dest = NULL;
 char *eph = NULL;
+char *ip_s = NULL;
+struct in_addr ip;
 char *proc = "echo 'Hello world'";
 char *world = "/usr/worlds/10.0-RELEASE";
 char mountstr[M_BUF];
@@ -43,11 +47,12 @@ void handle_sigint() {
 
 void parse_options(int argc, char *argv[]) {
   int c;
-  while ((c = getopt(argc, argv, "a:d:e:p:w:")) != -1) {
+  while ((c = getopt(argc, argv, "a:d:e:i:p:w:")) != -1) {
     switch (c) {
       case 'a': app   = optarg; break;
       case 'd': dest  = optarg; break;
       case 'e': eph   = optarg; break;
+      case 'i': ip_s  = optarg; break;
       case 'p': proc  = optarg; break;
       case 'w': world = optarg; break;
     }
@@ -55,6 +60,8 @@ void parse_options(int argc, char *argv[]) {
   if (app == NULL) die("Arg -a (app directory) not found");
   if (dest == NULL) die("Arg -d (destination directory) not found");
   if (eph == NULL) llog("Warning: running without ephemeral storage");
+  if (ip_s == NULL) llog("Warning: running without IP address");
+  if (ip_s != NULL && inet_pton(AF_INET, ip_s, &ip) <= 0) die("Could not parse IP address %s", ip_s);
 }
 
 void mount_dirs() {
@@ -96,6 +103,11 @@ int main(int argc, char *argv[]) {
     j.jailname = "lj";
     j.ip4s = 0;
     j.ip6s = 0;
+    if (ip_s != NULL) {
+      j.ip4s++;
+      j.ip4 = malloc(sizeof(struct in_addr) * j.ip4s);
+      j.ip4[0] = ip;
+    }
     int jresult = jail(&j);
     if (jresult == -1) die("Could not start jail, error %d: %s", errno, strerror(errno));
     chdir("/app");
