@@ -1,5 +1,7 @@
+CFLAGS = -g -O3 -Wall -Wextra -Wformat-security -fstack-protector-all -fsanitize=bounds
+
 ljspawn: ljspawn.c mounts.c
-	cc -o ljspawn ljspawn.c
+	cc $(CFLAGS) -o ljspawn ljspawn.c
 
 install: ljspawn
 	cp ljspawn /usr/local/bin/
