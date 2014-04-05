@@ -150,6 +150,7 @@ int main(int argc, char *argv[]) {
       j.ip4s++;
       j.ip4 = malloc(sizeof(struct in_addr) * j.ip4s);
       j.ip4[0] = ip;
+      safe_snprintf(shellstr, M_BUF, "ifconfig lo0 alias '%s'", ip_s); system(shellstr);
     }
     int jresult = jail(&j);
     if (jresult == -1) die_errno("Could not start jail");
