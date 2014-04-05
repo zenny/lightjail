@@ -29,6 +29,7 @@ char *proc = "echo 'Hello world'";
 char *stor = NULL;
 char *world = "/usr/worlds/10.0-RELEASE";
 char shellstr[M_BUF];
+bool mount_started = false;
 
 void unmount_dirs();
 
@@ -38,7 +39,7 @@ void die(const char *format, ...) {
   fprintf(stderr, "=[ljspawn]=> ");
   vfprintf(stderr, format, vargs);
   fprintf(stderr, "\n");
-  unmount_dirs();
+  if (mount_started) unmount_dirs();
   exit(1);
 }
 
@@ -48,7 +49,7 @@ void die_errno(const char *format, ...) {
   fprintf(stderr, "=[ljspawn]=> ");
   vfprintf(stderr, format, vargs);
   fprintf(stderr, ". Error %d: %s\n", errno, strerror(errno));
-  unmount_dirs();
+  if (mount_started) unmount_dirs();
   exit(errno);
 }
 
@@ -64,9 +65,22 @@ void handle_sigint() {
   // Just need to handle somehow, otherwise the umount section is not called at all
 }
 
+void usage(char *pname) {
+  puts("ljspawn -- spawn a process in a lightweight jail environment powered by a union mount");
+  printf("usage: %s [options]\noptions:\n", pname);
+  puts("  -a /path/to/app -- path to the application you want to run (mounted over world, under storage and devfs)");
+  puts("  -d /path/to/dest -- path to the destination -- a temporary folder that will be created (must not exist!) as the mount point");
+  puts("  -e -- make the storage ephemeral, ie. erase it after quitting");
+  puts("  -i IP.AD.DR.ESS -- the jail's IPv4 address (optional)");
+  puts("  -n name -- the value for setting jailname and hostname (optional, 'lj' by default)");
+  puts("  -p '/path/to/process args' -- the shell command to execute in the jail");
+  puts("  -s /path/to/storage -- path to the storage (mounted over app, under dev)");
+  puts("  -w /path/to/world -- path to the world, ie. FreeBSD userland you installed from /usr/src using installworld (mounted first)");
+}
+
 void parse_options(int argc, char *argv[]) {
   int c;
-  while ((c = getopt(argc, argv, "a:d:ei:n:p:s:w:")) != -1) {
+  while ((c = getopt(argc, argv, "a:d:ehi:n:p:s:w:?")) != -1) {
     switch (c) {
       case 'a': app   = optarg; break;
       case 'd': dest  = optarg; break;
@@ -76,10 +90,13 @@ void parse_options(int argc, char *argv[]) {
       case 'p': proc  = optarg; break;
       case 's': stor  = optarg; break;
       case 'w': world = optarg; break;
+      case '?':
+      case 'h':
+      default: usage(argv[0]); exit(1); break;
     }
   }
-  if (app == NULL) die("Arg -a (app directory) not found");
-  if (dest == NULL) die("Arg -d (destination directory) not found");
+  if (app == NULL) { usage(argv[0]); die("Arg -a (app directory) not found"); }
+  if (dest == NULL) { usage(argv[0]); die("Arg -d (destination directory) not found"); }
   if (stor == NULL) llog("Warning: running without storage (-s)");
   if (ip_s == NULL) llog("Warning: running without IP address (-i)");
   if (ip_s != NULL && inet_pton(AF_INET, ip_s, &ip) <= 0) die("Could not parse IP address %s", ip_s);
@@ -87,6 +104,7 @@ void parse_options(int argc, char *argv[]) {
 }
 
 void mount_dirs() {
+  mount_started = true;
   if (mkdir(dest, 0600) == -1) die_errno("Could not mkdir %s", dest);
   if (stor != NULL && mkdir(stor, 0600) == -1) {
     if (errno != EEXIST) {
