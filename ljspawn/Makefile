@@ -1,4 +1,4 @@
-ljspawn: ljspawn.c
+ljspawn: ljspawn.c mounts.c
 	cc -o ljspawn ljspawn.c
 
 install: ljspawn

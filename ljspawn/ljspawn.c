@@ -8,21 +8,27 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+#include "mounts.c"
 
+#define DEFAULT_NAME "lj"
 #define M_BUF 2048
 #define safe_snprintf(dst, len, ...) if ((snprintf((dst), (len), __VA_ARGS__)) >= (len)) die("Error: args are too long!")
 
 char *app = NULL;
 char *dest = NULL;
-char *eph = NULL;
+char dest_dev[M_BUF];
+bool s_eph = false;
 char *ip_s = NULL;
 struct in_addr ip;
+char *name = DEFAULT_NAME;
 char *proc = "echo 'Hello world'";
+char *stor = NULL;
 char *world = "/usr/worlds/10.0-RELEASE";
-char mountstr[M_BUF];
+char shellstr[M_BUF];
 
 void die(const char *format, ...) {
   va_list vargs;
@@ -47,39 +53,45 @@ void handle_sigint() {
 
 void parse_options(int argc, char *argv[]) {
   int c;
-  while ((c = getopt(argc, argv, "a:d:e:i:p:w:")) != -1) {
+  while ((c = getopt(argc, argv, "a:d:ei:n:p:s:w:")) != -1) {
     switch (c) {
       case 'a': app   = optarg; break;
       case 'd': dest  = optarg; break;
-      case 'e': eph   = optarg; break;
+      case 'e': s_eph = true; break;
       case 'i': ip_s  = optarg; break;
+      case 'n': name  = optarg; break;
       case 'p': proc  = optarg; break;
+      case 's': stor  = optarg; break;
       case 'w': world = optarg; break;
     }
   }
   if (app == NULL) die("Arg -a (app directory) not found");
   if (dest == NULL) die("Arg -d (destination directory) not found");
-  if (eph == NULL) llog("Warning: running without ephemeral storage");
-  if (ip_s == NULL) llog("Warning: running without IP address");
+  if (stor == NULL) llog("Warning: running without storage (-s)");
+  if (ip_s == NULL) llog("Warning: running without IP address (-i)");
   if (ip_s != NULL && inet_pton(AF_INET, ip_s, &ip) <= 0) die("Could not parse IP address %s", ip_s);
+  if (name == DEFAULT_NAME) llog("Warning: running with default name, specify with -n");
 }
 
 void mount_dirs() {
   if (mkdir(dest, 0600) == -1) die("Could not mkdir %s, error %d: %s", dest, errno, strerror(errno));
-  if (eph != NULL && mkdir(eph, 0600) == -1) die("Could not mkdir %s, error %d: %s", eph, errno, strerror(errno));
-  safe_snprintf(mountstr, M_BUF, "mount_nullfs -o ro '%s' '%s'", world, dest); system(mountstr);
-  safe_snprintf(mountstr, M_BUF, "mount_unionfs -o ro '%s' '%s'", app, dest); system(mountstr);
-  if (eph != NULL) { safe_snprintf(mountstr, M_BUF, "mount_unionfs -o noatime '%s' '%s'", eph, dest); system(mountstr); }
-  safe_snprintf(mountstr, M_BUF, "mount -t devfs devfs '%s/dev'", dest); system(mountstr);
+  if (stor != NULL && mkdir(stor, 0600) == -1) {
+    if (errno != EEXIST) {
+      die("Could not mkdir %s, error %d: %s", stor, errno, strerror(errno));
+    }
+  }
+  if (mount_nullfs_ro(world, dest) < 0) die("Could not mount world %s to %s, error %d: %s", world, dest, errno, strerror(errno));
+  if (mount_unionfs_ro(app, dest) < 0) die("Could not mount app %s to %s, error %d: %s", app, dest, errno, strerror(errno));
+  if (stor != NULL) if (mount_unionfs_rw(stor, dest) < 0) die("Could not mount storage %s to %s, error %d: %s", stor, dest, errno, strerror(errno));
+  safe_snprintf(dest_dev, M_BUF, "%s/dev", dest);
+  mount_devfs(dest_dev);
 }
 
 void unmount_dirs() {
-  safe_snprintf(mountstr, M_BUF, "umount '%s/dev'", dest); system(mountstr);
-  safe_snprintf(mountstr, M_BUF, "umount '%s'", dest); system(mountstr);
-  safe_snprintf(mountstr, M_BUF, "umount '%s'", dest); system(mountstr);
-  safe_snprintf(mountstr, M_BUF, "umount '%s'", dest); system(mountstr);
-  safe_snprintf(mountstr, M_BUF, "rmdir '%s'", dest); system(mountstr);
-  if (eph != NULL) { safe_snprintf(mountstr, M_BUF, "rm -r '%s'", eph); system(mountstr); }
+  if (unmount(dest_dev, MNT_FORCE) == -1) llog("Could not unmount %s, error %d: %s", dest_dev, errno, strerror(errno));
+  for (int i = 0; i < 3; i++) if (unmount(dest, MNT_FORCE) == -1) llog("Could not unmount %s, error %d: %s", dest, errno, strerror(errno));
+  if (stor != NULL && rmdir(dest) == -1) llog("Could not rmdir %s, error %d: %s", dest, errno, strerror(errno));
+  if (stor != NULL && s_eph == true) { safe_snprintf(shellstr, M_BUF, "rm -r '%s'", stor); system(shellstr); }
 }
 
 int main(int argc, char *argv[]) {
@@ -99,8 +111,8 @@ int main(int argc, char *argv[]) {
     struct jail j;
     j.version = JAIL_API_VERSION;
     j.path = dest;
-    j.hostname = "";
-    j.jailname = "lj";
+    j.hostname = name;
+    j.jailname = name;
     j.ip4s = 0;
     j.ip6s = 0;
     if (ip_s != NULL) {
@@ -112,7 +124,7 @@ int main(int argc, char *argv[]) {
     if (jresult == -1) die("Could not start jail, error %d: %s", errno, strerror(errno));
     chdir("/app");
     llog("Running container %s in jail %d", dest, jresult);
-    if (eph != NULL) system("echo 'nobody:*:65534:65534:Unprivileged user:/nonexistent:/usr/sbin/nologin' >> /etc/passwd");
+    if (stor != NULL) system("echo 'nobody:*:65534:65534:Unprivileged user:/nonexistent:/usr/sbin/nologin' >> /etc/passwd");
     return execve("/bin/sh", (char *[]){ "sh", "-c", proc, 0 }, (char *[]){ 0 });
   }
 }
