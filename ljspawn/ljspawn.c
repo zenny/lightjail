@@ -15,7 +15,7 @@
 #include "mounts.c"
 
 #define DEFAULT_NAME "lj"
-#define M_BUF 2048
+#define M_BUF 1024
 #define safe_snprintf(dst, len, ...) if ((snprintf((dst), (len), __VA_ARGS__)) >= (len)) die("Error: args are too long!")
 
 char *app = NULL;
@@ -47,10 +47,9 @@ void die_errno(const char *format, ...) {
   va_start(vargs, format);
   fprintf(stderr, "=[ljspawn]=> ");
   vfprintf(stderr, format, vargs);
-  fprintf(stderr, ". Error %d: %s", errno, strerror(errno));
-  fprintf(stderr, "\n");
+  fprintf(stderr, ". Error %d: %s\n", errno, strerror(errno));
   unmount_dirs();
-  exit(1);
+  exit(errno);
 }
 
 void llog(const char* format, ...) {
