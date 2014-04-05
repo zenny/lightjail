@@ -30,12 +30,26 @@ char *stor = NULL;
 char *world = "/usr/worlds/10.0-RELEASE";
 char shellstr[M_BUF];
 
+void unmount_dirs();
+
 void die(const char *format, ...) {
   va_list vargs;
   va_start(vargs, format);
   fprintf(stderr, "=[ljspawn]=> ");
   vfprintf(stderr, format, vargs);
   fprintf(stderr, "\n");
+  unmount_dirs();
+  exit(1);
+}
+
+void die_errno(const char *format, ...) {
+  va_list vargs;
+  va_start(vargs, format);
+  fprintf(stderr, "=[ljspawn]=> ");
+  vfprintf(stderr, format, vargs);
+  fprintf(stderr, ". Error %d: %s", errno, strerror(errno));
+  fprintf(stderr, "\n");
+  unmount_dirs();
   exit(1);
 }
 
@@ -74,17 +88,17 @@ void parse_options(int argc, char *argv[]) {
 }
 
 void mount_dirs() {
-  if (mkdir(dest, 0600) == -1) die("Could not mkdir %s, error %d: %s", dest, errno, strerror(errno));
+  if (mkdir(dest, 0600) == -1) die_errno("Could not mkdir %s", dest);
   if (stor != NULL && mkdir(stor, 0600) == -1) {
     if (errno != EEXIST) {
-      die("Could not mkdir %s, error %d: %s", stor, errno, strerror(errno));
+      die_errno("Could not mkdir %s", stor);
     }
   }
-  if (mount_nullfs_ro(world, dest) < 0) die("Could not mount world %s to %s, error %d: %s", world, dest, errno, strerror(errno));
-  if (mount_unionfs_ro(app, dest) < 0) die("Could not mount app %s to %s, error %d: %s", app, dest, errno, strerror(errno));
-  if (stor != NULL) if (mount_unionfs_rw(stor, dest) < 0) die("Could not mount storage %s to %s, error %d: %s", stor, dest, errno, strerror(errno));
+  if (mount_nullfs_ro(world, dest) < 0) die_errno("Could not mount world %s to %s", world, dest);
+  if (mount_unionfs_ro(app, dest) < 0)  die_errno("Could not mount app %s to %s", app, dest);
+  if (stor != NULL) if (mount_unionfs_rw(stor, dest) < 0) die_errno("Could not mount storage %s to %s", stor, dest);
   safe_snprintf(dest_dev, M_BUF, "%s/dev", dest);
-  mount_devfs(dest_dev);
+  if (mount_devfs(dest_dev) < 0) die_errno("Could not mount devfs to %s", dest_dev);
 }
 
 void unmount_dirs() {
@@ -100,7 +114,7 @@ int main(int argc, char *argv[]) {
   mount_dirs();
 
   pid_t fpid = fork();
-  if (fpid == -1) die("Could not fork, error %d: %s", errno, strerror(errno));
+  if (fpid == -1) die_errno("Could not fork");
   if (fpid > 0) { // Parent
     signal(SIGINT, handle_sigint);
     int status;
@@ -121,7 +135,7 @@ int main(int argc, char *argv[]) {
       j.ip4[0] = ip;
     }
     int jresult = jail(&j);
-    if (jresult == -1) die("Could not start jail, error %d: %s", errno, strerror(errno));
+    if (jresult == -1) die_errno("Could not start jail");
     chdir("/app");
     llog("Running container %s in jail %d", dest, jresult);
     if (stor != NULL) system("echo 'nobody:*:65534:65534:Unprivileged user:/nonexistent:/usr/sbin/nologin' >> /etc/passwd");
