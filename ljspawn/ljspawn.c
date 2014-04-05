@@ -15,7 +15,7 @@
 
 char *app = NULL;
 char *dest = NULL;
-char *eph = "/tmp/eph";
+char *eph = NULL;
 char *proc = "echo 'Hello world'";
 char *world = "/usr/worlds/10.0-RELEASE";
 char mountstr[M_BUF];
@@ -54,14 +54,15 @@ void parse_options(int argc, char *argv[]) {
   }
   if (app == NULL) die("Arg -a (app directory) not found");
   if (dest == NULL) die("Arg -d (destination directory) not found");
+  if (eph == NULL) llog("Warning: running without ephemeral storage");
 }
 
 void mount_dirs() {
   if (mkdir(dest, 0600) == -1) die("Could not mkdir %s, error %d: %s", dest, errno, strerror(errno));
-  if (mkdir(eph, 0600)  == -1) die("Could not mkdir %s, error %d: %s", eph, errno, strerror(errno));
+  if (eph != NULL && mkdir(eph, 0600) == -1) die("Could not mkdir %s, error %d: %s", eph, errno, strerror(errno));
   safe_snprintf(mountstr, M_BUF, "mount_nullfs -o ro '%s' '%s'", world, dest); system(mountstr);
   safe_snprintf(mountstr, M_BUF, "mount_unionfs -o ro '%s' '%s'", app, dest); system(mountstr);
-  safe_snprintf(mountstr, M_BUF, "mount_unionfs -o noatime '%s' '%s'", eph, dest); system(mountstr);
+  if (eph != NULL) { safe_snprintf(mountstr, M_BUF, "mount_unionfs -o noatime '%s' '%s'", eph, dest); system(mountstr); }
   safe_snprintf(mountstr, M_BUF, "mount -t devfs devfs '%s/dev'", dest); system(mountstr);
 }
 
@@ -71,7 +72,7 @@ void unmount_dirs() {
   safe_snprintf(mountstr, M_BUF, "umount '%s'", dest); system(mountstr);
   safe_snprintf(mountstr, M_BUF, "umount '%s'", dest); system(mountstr);
   safe_snprintf(mountstr, M_BUF, "rmdir '%s'", dest); system(mountstr);
-  safe_snprintf(mountstr, M_BUF, "rm -r '%s'", eph); system(mountstr);
+  if (eph != NULL) { safe_snprintf(mountstr, M_BUF, "rm -r '%s'", eph); system(mountstr); }
 }
 
 int main(int argc, char *argv[]) {
@@ -99,7 +100,7 @@ int main(int argc, char *argv[]) {
     if (jresult == -1) die("Could not start jail, error %d: %s", errno, strerror(errno));
     chdir("/app");
     llog("Running container %s in jail %d", dest, jresult);
-    system("echo 'nobody:*:65534:65534:Unprivileged user:/nonexistent:/usr/sbin/nologin' >> /etc/passwd");
+    if (eph != NULL) system("echo 'nobody:*:65534:65534:Unprivileged user:/nonexistent:/usr/sbin/nologin' >> /etc/passwd");
     return execve("/bin/sh", (char *[]){ "sh", "-c", proc, 0 }, (char *[]){ 0 });
   }
 }
