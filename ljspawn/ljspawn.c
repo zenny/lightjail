@@ -21,14 +21,12 @@
 char *app = NULL;
 char *dest = NULL;
 char dest_dev[M_BUF];
-bool s_eph = false;
 char *ip_s = NULL;
 struct in_addr ip;
 char *name = DEFAULT_NAME;
 char *proc = "echo 'Hello world'";
 char *stor = NULL;
 char *world = "/usr/worlds/10.0-RELEASE";
-char shellstr[M_BUF];
 bool mount_started = false;
 
 void unmount_dirs();
@@ -70,7 +68,6 @@ void usage(char *pname) {
   printf("usage: %s [options]\noptions:\n", pname);
   puts("  -a /path/to/app -- path to the application you want to run (mounted over world, under storage and devfs)");
   puts("  -d /path/to/dest -- path to the destination -- a temporary folder that will be created (must not exist!) as the mount point");
-  puts("  -e -- make the storage ephemeral, ie. erase it after quitting");
   puts("  -i IP.AD.DR.ESS -- the jail's IPv4 address (optional)");
   puts("  -n name -- the value for setting jailname and hostname (optional, 'lj' by default)");
   puts("  -p '/path/to/process args' -- the shell command to execute in the jail");
@@ -84,7 +81,6 @@ void parse_options(int argc, char *argv[]) {
     switch (c) {
       case 'a': app   = optarg; break;
       case 'd': dest  = optarg; break;
-      case 'e': s_eph = true; break;
       case 'i': ip_s  = optarg; break;
       case 'n': name  = optarg; break;
       case 'p': proc  = optarg; break;
@@ -122,7 +118,6 @@ void unmount_dirs() {
   if (unmount(dest_dev, MNT_FORCE) == -1) llog("Could not unmount %s, error %d: %s", dest_dev, errno, strerror(errno));
   for (int i = 0; i < 3; i++) if (unmount(dest, MNT_FORCE) == -1) llog("Could not unmount %s, error %d: %s", dest, errno, strerror(errno));
   if (stor != NULL && rmdir(dest) == -1) llog("Could not rmdir %s, error %d: %s", dest, errno, strerror(errno));
-  if (stor != NULL && s_eph == true) { safe_snprintf(shellstr, M_BUF, "rm -r '%s'", stor); system(shellstr); }
 }
 
 int main(int argc, char *argv[]) {
@@ -150,6 +145,7 @@ int main(int argc, char *argv[]) {
       j.ip4s++;
       j.ip4 = malloc(sizeof(struct in_addr) * j.ip4s);
       j.ip4[0] = ip;
+      char shellstr[M_BUF];
       safe_snprintf(shellstr, M_BUF, "ifconfig lo0 alias '%s'", ip_s); system(shellstr);
     }
     int jresult = jail(&j);
