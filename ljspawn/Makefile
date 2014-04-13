@@ -10,7 +10,7 @@ install: all
 	install ljspawn.1 $(PREFIX)/man/man1/
 
 clean:
-	rm ljspawn ljspawn.1 ljspawn.1.html
+	rm -f ljspawn ljspawn.1 ljspawn.1.html
 
 ljspawn: ljspawn.c
 	$(CC) $(CFLAGS) -o ljspawn ljspawn.c
