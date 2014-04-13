@@ -1,0 +1,54 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "LJSPAWN" "1" "April 2014" "Greg V" ""
+.
+.SH "NAME"
+\fBljspawn\fR \- spawn a process in a lightweight jail environment
+.
+.SH "SYNOPSIS"
+\fBronn\fR [\fB\-i\fR \fIIP address\fR] [\-n \fIname\fR] \fB\-d\fR \fIdirectory\fR \fB\-p\fR \fIprocess\fR
+.
+.br
+.
+.SH "DESCRIPTION"
+\fBljspawn\fR runs the \fIprocess\fR in a FreeBSD jail under \fIdirectory\fR with an optional \fIIP address\fR and \fIname\fR\.
+.
+.P
+It was made for running apps in a lightweight, ephemeral way, without any config files\.
+.
+.SH "OPTIONS"
+\fB\-i\fR \fIIP address\fR: The IP address that the jail will have\. It will also be added as an alias to the \fBlo0\fR network interface\.
+.
+.P
+\fB\-n\fR \fIname\fR: The hostname and jail name that the jail will have\.
+.
+.P
+\fB\-d\fR \fIdirectory\fR: The directory that contains the jail environment\. At least, it must have a FreeBSD base system (world), installed by \fBmake \-C/usr/src installworld DESTDIR=<directory>\fR\. But a lot of applications might require a \fBdevfs\fR\. The recommended way to prepare a directory for ljspawn is:
+.
+.br
+1\. mount a world using nullfs in read\-only mode
+.
+.br
+2\. mount devfs with a limited set of devices
+.
+.br
+3\. mount the application using unionfs in read\-only mode
+.
+.br
+4\. mount a temporary directory using unionfs in read\-write mode
+.
+.P
+\fB\-p\fR \fIprocess\fR: The command that will be run in the jail environment\. Technically optional, but will be \fBecho \'Hello world\'\fR by default, which is not very useful\.
+.
+.SH "COPYRIGHT"
+Copyright 2014 Greg V <floatboth@me\.com>
+.
+.P
+Licensed under the Apache License, Version 2\.0 (the "License"); you may not use this file except in compliance with the License\. You may obtain a copy of the License at
+.
+.P
+http://www\.apache\.org/licenses/LICENSE\-2\.0
+.
+.P
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied\. See the License for the specific language governing permissions and limitations under the License\.

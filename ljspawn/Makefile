@@ -1,11 +1,21 @@
 CC ?= cc
 CFLAGS += -g -O3 -Wall -Wextra -Wformat-security -fstack-protector-all -fsanitize=bounds
+RONN ?= ronn
+PREFIX ?= /usr/local
+
+all: ljspawn ljspawn.1
+
+install: all
+	install ljspawn $(PREFIX)/bin/
+	install ljspawn.1 $(PREFIX)/man/man1/
+
+clean:
+	rm ljspawn ljspawn.1 ljspawn.1.html
 
 ljspawn: ljspawn.c
 	$(CC) $(CFLAGS) -o ljspawn ljspawn.c
 
-install: ljspawn
-	install ljspawn /usr/local/bin/
+ljspawn.1: ljspawn.1.ronn
+	$(RONN) --organization="Greg V" ljspawn.1.ronn
 
-clean:
-	rm ljspawn
+.PHONY: all install clean
