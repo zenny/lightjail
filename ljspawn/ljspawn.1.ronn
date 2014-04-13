@@ -3,7 +3,7 @@ ljspawn(1) -- spawn a process in a lightweight jail environment
 
 ## SYNOPSIS
 
-`ronn` [`-i` <IP address>] [-n <name>] `-d` <directory> `-p` <process><br>
+`ljspawn` [`-i` <IP address>] [-n <name>] `-d` <directory> `-p` <process><br>
 
 ## DESCRIPTION
 
