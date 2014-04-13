@@ -16,6 +16,6 @@ ljspawn: ljspawn.c
 	$(CC) $(CFLAGS) -o ljspawn ljspawn.c
 
 ljspawn.1: ljspawn.1.ronn
-	$(RONN) --organization="Greg V" ljspawn.1.ronn
+	$(RONN) --organization="Greg V" -r ljspawn.1.ronn
 
 .PHONY: all install clean
