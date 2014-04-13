@@ -14,7 +14,6 @@
 // See the License for the specific language governing permissions
 // and limitations under the License.
 
-#include <sys/stat.h>
 #include <sys/param.h>
 #include <sys/jail.h>
 #include <sys/wait.h>
@@ -24,13 +23,12 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdbool.h>
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
 
 #define DEFAULT_NAME "lj"
-#define M_BUF 1024
+#define M_BUF 256
 #define safe_snprintf(dst, len, ...) if ((snprintf((dst), (len), __VA_ARGS__)) >= (len)) die("Error: args are too long!")
 
 char *dest = NULL;
@@ -42,27 +40,21 @@ char *proc = "echo 'Hello world'";
 void die(const char *format, ...) {
   va_list vargs;
   va_start(vargs, format);
-  fprintf(stderr, "=[ljspawn]=> ");
-  vfprintf(stderr, format, vargs);
-  fprintf(stderr, "\n");
+  fprintf(stderr, "=[ljspawn]=> "); vfprintf(stderr, format, vargs); fprintf(stderr, "\n");
   exit(1);
 }
 
 void die_errno(const char *format, ...) {
   va_list vargs;
   va_start(vargs, format);
-  fprintf(stderr, "=[ljspawn]=> ");
-  vfprintf(stderr, format, vargs);
-  fprintf(stderr, ". Error %d: %s\n", errno, strerror(errno));
+  fprintf(stderr, "=[ljspawn]=> "); vfprintf(stderr, format, vargs); fprintf(stderr, ". Error %d: %s\n", errno, strerror(errno));
   exit(errno);
 }
 
 void llog(const char* format, ...) {
   va_list vargs;
   va_start(vargs, format);
-  printf("=[ljspawn]=> ");
-  vprintf(format, vargs);
-  printf("\n");
+  printf("=[ljspawn]=> "); vprintf(format, vargs); printf("\n");
 }
 
 void handle_sigint() {
@@ -97,37 +89,45 @@ void parse_options(int argc, char *argv[]) {
   if (name == DEFAULT_NAME) llog("Warning: running with default name, specify with -n");
 }
 
+void wait_and_bleed(pid_t fpid) {
+  signal(SIGINT, handle_sigint);
+  int status;
+  waitpid(fpid, &status, 0);
+  llog("Process exited with status %d", status);
+}
+
+int run() {
+  struct jail j;
+  j.version = JAIL_API_VERSION;
+  j.path = dest;
+  j.hostname = name;
+  j.jailname = name;
+  j.ip4s = 0;
+  j.ip6s = 0;
+  if (ip_s != NULL) {
+    j.ip4s++;
+    j.ip4 = malloc(sizeof(struct in_addr) * j.ip4s);
+    j.ip4[0] = ip;
+    char shellstr[M_BUF];
+    safe_snprintf(shellstr, M_BUF, "ifconfig lo0 alias '%s'", ip_s);
+    system(shellstr);
+  }
+  int jresult = jail(&j);
+  if (jresult == -1) die_errno("Could not start jail");
+  chdir("/");
+  llog("Running container %s in jail %d", dest, jresult);
+  system("echo 'nobody:*:65534:65534:Unprivileged user:/nonexistent:/usr/sbin/nologin' >> /etc/passwd");
+  return execve("/bin/sh", (char *[]){ "sh", "-c", proc, 0 }, (char *[]){ 0 });
+}
+
 int main(int argc, char *argv[]) {
   parse_options(argc, argv);
   llog("Going to start the command '%s' in %s\n", proc, dest);
-
   pid_t fpid = fork();
   if (fpid == -1) die_errno("Could not fork");
   if (fpid > 0) { // Parent
-    signal(SIGINT, handle_sigint);
-    int status;
-    waitpid(fpid, &status, 0);
-    llog("Process exited with status %d", status);
+    wait_and_bleed(fpid);
   } else { // Child
-    struct jail j;
-    j.version = JAIL_API_VERSION;
-    j.path = dest;
-    j.hostname = name;
-    j.jailname = name;
-    j.ip4s = 0;
-    j.ip6s = 0;
-    if (ip_s != NULL) {
-      j.ip4s++;
-      j.ip4 = malloc(sizeof(struct in_addr) * j.ip4s);
-      j.ip4[0] = ip;
-      char shellstr[M_BUF];
-      safe_snprintf(shellstr, M_BUF, "ifconfig lo0 alias '%s'", ip_s); system(shellstr);
-    }
-    int jresult = jail(&j);
-    if (jresult == -1) die_errno("Could not start jail");
-    chdir("/");
-    llog("Running container %s in jail %d", dest, jresult);
-    system("echo 'nobody:*:65534:65534:Unprivileged user:/nonexistent:/usr/sbin/nologin' >> /etc/passwd");
-    return execve("/bin/sh", (char *[]){ "sh", "-c", proc, 0 }, (char *[]){ 0 });
+    return run();
   }
 }
