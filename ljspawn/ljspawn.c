@@ -29,8 +29,7 @@
 
 #define DEFAULT_NAME "lj"
 #define DEFAULT_IFACE "lo0"
-#define M_BUF 256
-#define safe_snprintf(dst, len, ...) if ((snprintf((dst), (len), __VA_ARGS__)) >= (len)) die("Error: args are too long!")
+// #define safe_snprintf(dst, len, ...) if ((snprintf((dst), (len), __VA_ARGS__)) >= (len)) die("Error: args are too long!")
 
 char *dest = NULL;
 char *net_if = DEFAULT_IFACE;
@@ -112,9 +111,12 @@ int run() {
     j.ip4s++;
     j.ip4 = malloc(sizeof(struct in_addr) * j.ip4s);
     j.ip4[0] = ip;
-    char shellstr[M_BUF];
-    safe_snprintf(shellstr, M_BUF, "ifconfig %s alias '%s'", net_if, ip_s);
-    system(shellstr);
+    pid_t fpid = fork();
+    if (fpid == -1) die_errno("Could not fork");
+    if (fpid > 0) { // Parent
+    } else { // Child
+      return execv("/sbin/ifconfig", (char *[]){ "ifconfig", net_if, "alias", ip_s, 0 });
+    }
   }
   int jresult = jail(&j);
   if (jresult == -1) die_errno("Could not start jail");
