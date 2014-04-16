@@ -1,0 +1,9 @@
+requires world 10.0 # yo
+# requires github.com/myfreeweb/lightjail/overlays/ruby
+provides github.com/myfreeweb/lightjail/overlays/ruby # gotta require slashes
+type language
+version 2.1.1
+---
+ls -la /usr
+ls -la /usr/ports
+make -C/usr/ports/lang/ruby21 install clean
