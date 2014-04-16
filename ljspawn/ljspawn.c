@@ -28,10 +28,12 @@
 #include <unistd.h>
 
 #define DEFAULT_NAME "lj"
+#define DEFAULT_IFACE "lo0"
 #define M_BUF 256
 #define safe_snprintf(dst, len, ...) if ((snprintf((dst), (len), __VA_ARGS__)) >= (len)) die("Error: args are too long!")
 
 char *dest = NULL;
+char *net_if = DEFAULT_IFACE;
 char *ip_s = NULL;
 struct in_addr ip;
 char *name = DEFAULT_NAME;
@@ -66,18 +68,20 @@ void usage(char *pname) {
   printf("usage: %s [options]\noptions:\n", pname);
   puts("  -d /path/to/dir -- path to the temporary folder where you have your jail environment");
   puts("  -i IP.AD.DR.ESS -- the jail's IPv4 address (optional)");
+  puts("  -f interface0 -- the network interface for aliasing the jail's IPv4 address to (optional, 'lo0' by default)");
   puts("  -n name -- the value for setting jailname and hostname (optional, 'lj' by default)");
   puts("  -p '/path/to/process args' -- the shell command to execute in the jail");
 }
 
 void parse_options(int argc, char *argv[]) {
   int c;
-  while ((c = getopt(argc, argv, "d:hi:n:p:?")) != -1) {
+  while ((c = getopt(argc, argv, "d:f:hi:n:p:?")) != -1) {
     switch (c) {
-      case 'd': dest  = optarg; break;
-      case 'i': ip_s  = optarg; break;
-      case 'n': name  = optarg; break;
-      case 'p': proc  = optarg; break;
+      case 'd': dest   = optarg; break;
+      case 'i': ip_s   = optarg; break;
+      case 'f': net_if = optarg; break;
+      case 'n': name   = optarg; break;
+      case 'p': proc   = optarg; break;
       case '?':
       case 'h':
       default: usage(argv[0]); exit(1); break;
@@ -109,7 +113,7 @@ int run() {
     j.ip4 = malloc(sizeof(struct in_addr) * j.ip4s);
     j.ip4[0] = ip;
     char shellstr[M_BUF];
-    safe_snprintf(shellstr, M_BUF, "ifconfig lo0 alias '%s'", ip_s);
+    safe_snprintf(shellstr, M_BUF, "ifconfig %s alias '%s'", net_if, ip_s);
     system(shellstr);
   }
   int jresult = jail(&j);
