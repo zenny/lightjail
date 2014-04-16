@@ -1,5 +1,5 @@
 CC ?= cc
-CFLAGS += -g -O3 -Wall -Wextra -Wformat-security -fstack-protector-all -fsanitize=bounds
+CFLAGS += -g -Ofast -fPIC -fPIE -Wall -Wextra -Wformat-security -fstack-protector-all -fsanitize=bounds
 RONN ?= ronn
 PREFIX ?= /usr/local
 
