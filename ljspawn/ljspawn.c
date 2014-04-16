@@ -121,7 +121,11 @@ int run() {
   chdir("/");
   llog("Running container %s in jail %d", dest, jresult);
   system("echo 'nobody:*:65534:65534:Unprivileged user:/nonexistent:/usr/sbin/nologin' >> /etc/passwd");
-  return execve("/bin/sh", (char *[]){ "sh", "-c", proc, 0 }, (char *[]){ 0 });
+  return execve("/bin/sh", (char *[]){ "sh", "-c", proc, 0 },
+      (char *[]){ "PATH=/usr/local/bin:/usr/local/sbin:/usr/games:/usr/bin:/usr/sbin:/bin:/sbin",
+                  "LC_ALL=en_US.UTF-8",
+                  "LANG=en_US.UTF-8",
+                  "SHELL=/bin/sh", 0 });
 }
 
 int main(int argc, char *argv[]) {
