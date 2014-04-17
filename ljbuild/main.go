@@ -19,6 +19,8 @@ type Script struct {
 	Buildscript  string
 }
 
+var overrideVersion, ipAddr string
+
 func main() {
 	if _, err := exec.LookPath("ljspawn"); err != nil {
 		log.Fatal(err)
@@ -27,18 +29,21 @@ func main() {
 		log.Fatal(err)
 	}
 	// TODO: option to hide rootdir?
-	var overrideVersion string
 	flag.StringVar(&overrideVersion, "v", "", "Override version")
+	flag.StringVar(&ipAddr, "i", "", "IPv4 address of the build jail")
 	flag.Parse()
 	args := flag.Args()
 	if len(args) < 1 {
 		fmt.Printf("usage: ljbuild /path/to/Jailfile\n")
 		os.Exit(2)
 	}
-	runJailfile(args[0], overrideVersion)
+	if ipAddr == "" {
+		ipAddr = "192.168.1.240"
+	}
+	runJailfile(args[0])
 }
 
-func runJailfile(path, overrideVersion string) {
+func runJailfile(path string) {
 	script := parseJailfile(readJailfile(path))
 	if overrideVersion != "" {
 		script.Version = overrideVersion
@@ -62,12 +67,17 @@ func runJailfile(path, overrideVersion string) {
 	mounter := new(Mounter)
 	mounter.Mount("nullfs", "ro", worldDir, mountPoint)
 	mounter.Mount("unionfs", "rw", overlayDir, mountPoint)
-	ljspawnCmd := exec.Command("ljspawn", "-n", filepath.Base(mountPoint), "-d", mountPoint, "-p", script.Buildscript)
+	ljspawnCmd := exec.Command("ljspawn", "-n", filepath.Base(mountPoint), "-i", ipAddr, "-d", mountPoint, "-p", script.Buildscript)
 	ljspawnCmd.Stdout = os.Stdout
 	ljspawnCmd.Stderr = os.Stdout
-	if err := ljspawnCmd.Run(); err != nil {
-		log.Print(err)
+	cleanupFn := func() {
+		cleanup(mounter, mountPoint)
 	}
+	runner := Runner{Command: ljspawnCmd, Cleanup: cleanupFn}
+	runner.Run()
+}
+
+func cleanup(mounter *Mounter, mountPoint string) {
 	mounter.UnmountAll()
 	syscall.Rmdir(mountPoint)
 }
