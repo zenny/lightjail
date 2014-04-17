@@ -16,9 +16,8 @@ type Runner struct {
 
 func (runner *Runner) Run() {
 	done := make(chan error, 1)
-	interrupts := make(chan os.Signal, 1)
-	signal.Notify(interrupts, os.Interrupt)
-	signal.Notify(interrupts, syscall.SIGTERM)
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	if err := runner.Command.Start(); err != nil {
 		log.Fatal(err)
 	}
@@ -35,13 +34,10 @@ func (runner *Runner) Run() {
 		}
 	}()
 	go func() {
-		<-interrupts
-		runner.Command.Process.Signal(os.Interrupt)
-		select {
-		case <-time.After(2 * time.Second):
-			runner.Command.Process.Kill()
-			<-done
-		}
+		sig := <-interrupt
+		runner.Command.Process.Signal(sig)
+		<-time.After(2 * time.Second)
+		done <- runner.Command.Process.Kill()
 	}()
 }
 

@@ -37,6 +37,7 @@ char *ip_s = NULL;
 struct in_addr ip;
 char *name = DEFAULT_NAME;
 char *proc = "echo 'Hello world'";
+pid_t p_fpid;
 
 void die(const char *format, ...) {
   va_list vargs;
@@ -59,7 +60,7 @@ void llog(const char* format, ...) {
 }
 
 void handle_sigint() {
-  // Just need to handle somehow, otherwise the finish/cleanup section is not called at all
+  kill(p_fpid, SIGTERM);
 }
 
 void usage(char *pname) {
@@ -94,6 +95,9 @@ void parse_options(int argc, char *argv[]) {
 
 void wait_and_bleed(pid_t fpid) {
   signal(SIGINT, handle_sigint);
+  signal(SIGTERM, handle_sigint);
+  signal(SIGQUIT, handle_sigint);
+  signal(SIGHUP, handle_sigint);
   int status;
   waitpid(fpid, &status, 0);
   llog("Process exited with status %d", status);
@@ -133,10 +137,10 @@ int run() {
 int main(int argc, char *argv[]) {
   parse_options(argc, argv);
   llog("Going to start the command '%s' in %s\n", proc, dest);
-  pid_t fpid = fork();
-  if (fpid == -1) die_errno("Could not fork");
-  if (fpid > 0) { // Parent
-    wait_and_bleed(fpid);
+  p_fpid = fork();
+  if (p_fpid == -1) die_errno("Could not fork");
+  if (p_fpid > 0) { // Parent
+    wait_and_bleed(p_fpid);
   } else { // Child
     return run();
   }
