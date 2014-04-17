@@ -59,16 +59,16 @@ func runJailfile(path, overrideVersion string) {
 		log.Fatal(err)
 	}
 	log.Printf("Building %s %s version %s\n", script.Type, script.Path, script.Version)
-	mount("nullfs", "ro", worldDir, mountPoint)
-	mount("unionfs", "rw", overlayDir, mountPoint)
+	mounter := new(Mounter)
+	mounter.Mount("nullfs", "ro", worldDir, mountPoint)
+	mounter.Mount("unionfs", "rw", overlayDir, mountPoint)
 	ljspawnCmd := exec.Command("ljspawn", "-n", filepath.Base(mountPoint), "-d", mountPoint, "-p", script.Buildscript)
 	ljspawnCmd.Stdout = os.Stdout
 	ljspawnCmd.Stderr = os.Stdout
 	if err := ljspawnCmd.Run(); err != nil {
 		log.Print(err)
 	}
-	unmount(mountPoint)
-	unmount(mountPoint)
+	mounter.UnmountAll()
 	syscall.Rmdir(mountPoint)
 }
 
@@ -90,20 +90,4 @@ func getRootDir() string {
 
 func (script *Script) getOverlayPath(rootDir string) string {
 	return filepath.Join(rootDir, script.Type+"s", script.Path, script.Version)
-}
-
-func mount(fs, opt, from, to string) {
-	mountCmd := exec.Command("mount", "-t", fs, "-o", opt, from, to)
-	mountCmd.Stderr = os.Stdout
-	if err := mountCmd.Run(); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func unmount(from string) {
-	unmountCmd := exec.Command("umount", from)
-	unmountCmd.Stderr = os.Stdout
-	if err := unmountCmd.Run(); err != nil {
-		log.Print(err)
-	}
 }
