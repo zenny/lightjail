@@ -43,6 +43,9 @@ func (runner *Runner) Run() {
 			<-done
 		}
 	}()
+}
+
+func block() {
 	for {
 		time.Sleep(1 * time.Second)
 	}

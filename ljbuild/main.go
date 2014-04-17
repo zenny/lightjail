@@ -75,6 +75,7 @@ func runJailfile(path string) {
 	}
 	runner := Runner{Command: ljspawnCmd, Cleanup: cleanupFn}
 	runner.Run()
+	block()
 }
 
 func cleanup(mounter *Mounter, mountPoint string) {
