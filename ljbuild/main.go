@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -34,7 +33,7 @@ func main() {
 	flag.Parse()
 	args := flag.Args()
 	if len(args) < 1 {
-		fmt.Printf("usage: ljbuild /path/to/Jailfile\n")
+		flag.Usage()
 		os.Exit(2)
 	}
 	if ipAddr == "" {
