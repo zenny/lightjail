@@ -70,8 +70,9 @@ func runJailfile(path string) {
 	ljspawnCmd := exec.Command("ljspawn", "-n", filepath.Base(mountPoint), "-i", ipAddr, "-d", mountPoint, "-p", script.Buildscript)
 	ljspawnCmd.Stdout = os.Stdout
 	ljspawnCmd.Stderr = os.Stdout
-	runner := Runner{Command: ljspawnCmd, Done: make(chan int, 1)}
-	code := <-runner.Run()
+	runner := new(Runner)
+	runner.handleInterrupts()
+	code := <-runner.Run(ljspawnCmd)
 	mounter.UnmountAll()
 	syscall.Rmdir(mountPoint)
 	log.Printf("Finished with code %d\n", code)
