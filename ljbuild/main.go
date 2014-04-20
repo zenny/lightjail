@@ -70,13 +70,11 @@ func runJailfile(path string) {
 	ljspawnCmd := exec.Command("ljspawn", "-n", filepath.Base(mountPoint), "-i", ipAddr, "-d", mountPoint, "-p", script.Buildscript)
 	ljspawnCmd.Stdout = os.Stdout
 	ljspawnCmd.Stderr = os.Stdout
-	cleanupFunc := func() {
-		mounter.UnmountAll()
-		syscall.Rmdir(mountPoint)
-	}
-	runner := Runner{Command: ljspawnCmd, Cleanup: cleanupFunc}
-	runner.Run()
-	block()
+	runner := Runner{Command: ljspawnCmd, Done: make(chan int, 1)}
+	code := <-runner.Run()
+	mounter.UnmountAll()
+	syscall.Rmdir(mountPoint)
+	log.Printf("Finished with code %d\n", code)
 }
 
 func readJailfile(path string) string {

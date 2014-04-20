@@ -18,6 +18,8 @@
 #include <sys/jail.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
+#include <sys/mman.h>
+#include <sys/file.h>
 #include <arpa/inet.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -29,7 +31,7 @@
 
 #define DEFAULT_NAME "lj"
 #define DEFAULT_IFACE "lo0"
-// #define safe_snprintf(dst, len, ...) if ((snprintf((dst), (len), __VA_ARGS__)) >= (len)) die("Error: args are too long!")
+#define safe_snprintf(dst, len, ...) if ((snprintf((dst), (len), __VA_ARGS__)) >= (len)) die("Error: overflow!")
 
 char *dest = NULL;
 char *net_if = DEFAULT_IFACE;
@@ -63,6 +65,10 @@ void handle_sigint() {
   kill(p_fpid, SIGTERM);
 }
 
+void handle_sigterm() {
+  kill(p_fpid, SIGKILL);
+}
+
 void usage(char *pname) {
   puts("ljspawn -- spawn a process in a lightweight jail environment");
   printf("usage: %s [options]\noptions:\n", pname);
@@ -93,14 +99,24 @@ void parse_options(int argc, char *argv[]) {
   if (name == DEFAULT_NAME) llog("Warning: running with default name, specify with -n");
 }
 
+static int *jail_id;
+
 void wait_and_bleed(pid_t fpid) {
-  signal(SIGINT, handle_sigint);
-  signal(SIGTERM, handle_sigint);
   signal(SIGQUIT, handle_sigint);
   signal(SIGHUP, handle_sigint);
+  signal(SIGINT, handle_sigint);
+  signal(SIGTERM, handle_sigterm);
   int status;
   waitpid(fpid, &status, 0);
   llog("Process exited with status %d", status);
+  char jail_id_str[16];
+  safe_snprintf(jail_id_str, 16, "%d", *jail_id);
+  munmap(jail_id, sizeof *jail_id);
+  pid_t killall_pid = fork();
+  if (killall_pid == -1) die_errno("Could not fork");
+  if (killall_pid <= 0) { // Child
+    execv("/usr/bin/killall", (char *[]){ "killall", "-9", "-j", jail_id_str, 0 }); // Make sure there are no orphans in the jail
+  }
 }
 
 int run() {
@@ -115,15 +131,15 @@ int run() {
     j.ip4s++;
     j.ip4 = malloc(sizeof(struct in_addr) * j.ip4s);
     j.ip4[0] = ip;
-    pid_t fpid = fork();
-    if (fpid == -1) die_errno("Could not fork");
-    if (fpid > 0) { // Parent
-    } else { // Child
+    pid_t ifconfig_pid = fork();
+    if (ifconfig_pid == -1) die_errno("Could not fork");
+    if (ifconfig_pid <= 0) { // Parent
       return execv("/sbin/ifconfig", (char *[]){ "ifconfig", net_if, "alias", ip_s, 0 });
     }
   }
   int jresult = jail(&j);
   if (jresult == -1) die_errno("Could not start jail");
+  *jail_id = jresult;
   chdir("/");
   llog("Running container %s in jail %d", dest, jresult);
   system("echo 'nobody:*:65534:65534:Unprivileged user:/nonexistent:/usr/sbin/nologin' >> /etc/passwd");
@@ -137,6 +153,9 @@ int run() {
 int main(int argc, char *argv[]) {
   parse_options(argc, argv);
   llog("Going to start the command '%s' in %s\n", proc, dest);
+  jail_id = (int*) mmap(NULL, sizeof *jail_id, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+  if (jail_id == MAP_FAILED) die_errno("mmap failed");
+  *jail_id = -1;
   p_fpid = fork();
   if (p_fpid == -1) die_errno("Could not fork");
   if (p_fpid > 0) { // Parent

@@ -20,6 +20,7 @@ func (mounter *Mounter) Mount(fs, opt, from, to string) {
 }
 
 func (mounter *Mounter) Unmount(from string) {
+	log.Printf("Unmounting %s", from)
 	unmountCmd := exec.Command("umount", from)
 	unmountCmd.Stderr = os.Stdout
 	if err := unmountCmd.Run(); err != nil {

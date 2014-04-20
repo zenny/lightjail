@@ -5,44 +5,49 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
 
 type Runner struct {
 	Command *exec.Cmd
-	Cleanup func()
+	Done    chan int
 }
 
-func (runner *Runner) Run() {
-	done := make(chan error, 1)
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+func (runner *Runner) Run() chan int {
 	if err := runner.Command.Start(); err != nil {
 		log.Fatal(err)
 	}
 	go func() {
-		done <- runner.Command.Wait()
+		state, _ := runner.Command.Process.Wait()
+		runner.Done <- int(state.Sys().(syscall.WaitStatus))
 	}()
-	go func() {
-		err := <-done
-		runner.Cleanup()
-		if err == nil {
-			os.Exit(0)
-		} else {
-			log.Fatal(err)
-		}
-	}()
-	go func() {
-		sig := <-interrupt
-		runner.Command.Process.Signal(sig)
-		<-time.After(2 * time.Second)
-		done <- runner.Command.Process.Kill()
-	}()
+	runner.handleInterrupts()
+	return runner.Done
 }
 
-func block() {
-	for {
-		time.Sleep(1 * time.Second)
-	}
+func (runner *Runner) handleInterrupts() {
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	go func() {
+		<-interrupt
+		// for _, cmd := range runner.Commands {
+		cmd := runner.Command
+		var waitGrp sync.WaitGroup
+		waitGrp.Add(1)
+		go func() {
+			cmd.Process.Signal(syscall.SIGINT) // INT ljspawn -> it will TERM the process it runs
+			select {
+			case <-runner.Done:
+			case <-time.After(2 * time.Second):
+				cmd.Process.Signal(syscall.SIGTERM) // TERM ljspawn -> it will KILL the process it runs
+			case <-time.After(8 * time.Second):
+				cmd.Process.Kill() // Something is fucked up and we have to kill ljspawn
+			}
+			waitGrp.Done()
+		}()
+		waitGrp.Wait()
+		// }
+	}()
 }
