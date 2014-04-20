@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
+	"time"
 )
 
 type Script struct {
@@ -48,7 +49,12 @@ func runJailfile(path string) {
 		script.Version = overrideVersion
 	}
 	rootDir := getRootDir()
-	worldDir := filepath.Join(rootDir, "worlds", "10.0-test") // TODO: read world version
+	worldDir := filepath.Join(rootDir, "worlds", script.WorldVersion)
+	if _, err := os.Stat(worldDir); err != nil {
+		if os.IsNotExist(err) {
+			log.Fatalf("World does not exist: %s\n", script.WorldVersion)
+		}
+	}
 	overlayDir := script.getOverlayPath(rootDir)
 	if _, err := os.Stat(overlayDir); err != nil {
 		if os.IsExist(err) {
@@ -72,6 +78,7 @@ func runJailfile(path string) {
 	runner := new(Runner)
 	runner.handleInterrupts()
 	code := <-runner.Run(ljspawnCmd)
+	time.Sleep(300 * time.Millisecond) // Wait for killall, just in case
 	mounter.UnmountAll()
 	syscall.Rmdir(mountPoint)
 	log.Printf("Finished with code %d\n", code)

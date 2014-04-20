@@ -14,7 +14,7 @@ func parseJailfile(src string) *Script {
 	script := new(Script)
 	script.Buildscript = fileParts[1]
 	for _, line := range strings.Split(fileParts[0], "\n") {
-		worldMatches := regexp.MustCompile(`^requires world ([^\n ]+).*`).FindStringSubmatch(line)
+		worldMatches := regexp.MustCompile(`^world ([^\n ]+).*`).FindStringSubmatch(line)
 		if worldMatches != nil {
 			script.WorldVersion = worldMatches[1]
 		}
