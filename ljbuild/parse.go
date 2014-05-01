@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os/exec"
 	"regexp"
 	"strings"
 )
@@ -28,8 +29,12 @@ func parseJailfile(src string) *Script {
 		}
 	}
 	if script.WorldVersion == "" {
-		script.WorldVersion = "10.0"
-		log.Print("The Jailfile does not contain a 'requires world' directive, using default: 10.0")
+		ver, err := exec.Command("uname", "-r").Output()
+		if err != nil {
+			log.Fatal(err)
+		}
+		script.WorldVersion = strings.TrimSpace(string(ver))
+		log.Printf("The Jailfile does not contain a 'world' directive, using default: %s", script.WorldVersion)
 	}
 	if script.Path == "" {
 		log.Fatal("The Jailfile does not contain a 'provides' directive")
