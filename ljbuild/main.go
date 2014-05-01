@@ -48,10 +48,7 @@ func main() {
 }
 
 func runJailfile(path string) {
-	script := parseJailfile(readJailfile(path))
-	if overrideVersion != "" {
-		script.Version = overrideVersion
-	}
+	script := parseJailfile(readJailfile(path), overrideVersion)
 	rootDir := getRootDir()
 	worldDir := filepath.Join(rootDir, "worlds", script.WorldVersion)
 	if _, err := os.Stat(worldDir); err != nil {
