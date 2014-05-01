@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -76,12 +77,21 @@ func runJailfile(path string) {
 	ljspawnCmd.Stdout = os.Stdout
 	ljspawnCmd.Stderr = os.Stdout
 	runner := new(util.Runner)
-	runner.HandleInterrupts()
+	handleInterrupts(runner)
 	code := <-runner.Run(ljspawnCmd)
 	time.Sleep(300 * time.Millisecond) // Wait for jail removal, just in case
 	mounter.UnmountAll()
 	syscall.Rmdir(mountPoint)
 	log.Printf("Finished with code %d\n", code)
+}
+
+func handleInterrupts(runner *util.Runner) {
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	go func() {
+		<-interrupt
+		runner.Stop()
+	}()
 }
 
 func readJailfile(path string) string {
