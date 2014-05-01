@@ -70,7 +70,7 @@ func runJailfile(path string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Building %s %s version %s to %s\n", script.Type, script.Path, script.Version, overlayDir)
+	log.Printf("Building %s version %s\n", script.Path, script.Version)
 	mounter := new(Mounter)
 	mounter.Mount("nullfs", "ro", worldDir, mountPoint)
 	mounter.Mount("unionfs", "rw", overlayDir, mountPoint)
@@ -103,5 +103,5 @@ func getRootDir() string {
 }
 
 func (script *Script) getOverlayPath(rootDir string) string {
-	return filepath.Join(rootDir, script.Type+"s", script.Path, script.Version)
+	return filepath.Join(rootDir, script.Path, script.Version)
 }

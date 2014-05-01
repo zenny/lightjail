@@ -26,18 +26,10 @@ func parseJailfile(src string) *Script {
 		if versionMatches != nil {
 			script.Version = versionMatches[1]
 		}
-		typeMatches := regexp.MustCompile(`^type ([^\n# ]+).*`).FindStringSubmatch(line)
-		if typeMatches != nil {
-			script.Type = typeMatches[1]
-		}
 	}
 	if script.WorldVersion == "" {
 		script.WorldVersion = "10.0"
 		log.Print("The Jailfile does not contain a 'requires world' directive, using default: 10.0")
-	}
-	if script.Type == "" {
-		script.Type = "app"
-		log.Print("The Jailfile does not contain a 'type' directive, using default: app")
 	}
 	if script.Path == "" {
 		log.Fatal("The Jailfile does not contain a 'provides' directive")
