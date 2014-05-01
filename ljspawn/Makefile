@@ -7,6 +7,7 @@ all: ljspawn ljspawn.1
 
 install: all
 	install ljspawn $(PREFIX)/bin/
+	chmod u+s $(PREFIX)/bin/ljspawn
 	install ljspawn.1 $(PREFIX)/man/man1/
 
 clean:

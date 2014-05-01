@@ -19,7 +19,7 @@ type Script struct {
 	Buildscript  string
 }
 
-var overrideVersion, ipAddr string
+var overrideVersion, ipAddr, ipIface string
 
 func main() {
 	if _, err := exec.LookPath("ljspawn"); err != nil {
@@ -31,6 +31,7 @@ func main() {
 	// TODO: option to hide rootdir?
 	flag.StringVar(&overrideVersion, "v", "", "Override version")
 	flag.StringVar(&ipAddr, "i", "", "IPv4 address of the build jail")
+	flag.StringVar(&ipIface, "f", "", "network interface for the build jail")
 	flag.Parse()
 	args := flag.Args()
 	if len(args) < 1 {
@@ -39,6 +40,9 @@ func main() {
 	}
 	if ipAddr == "" {
 		ipAddr = "192.168.1.240"
+	}
+	if ipIface == "" {
+		ipIface = "lo0"
 	}
 	runJailfile(args[0])
 }
@@ -56,29 +60,27 @@ func runJailfile(path string) {
 		}
 	}
 	overlayDir := script.getOverlayPath(rootDir)
-	if _, err := os.Stat(overlayDir); err != nil {
-		if os.IsExist(err) {
-			log.Fatalf("Directory already exists: %s\n", overlayDir)
-		}
+	if _, err := os.Stat(overlayDir); err == nil {
+		log.Fatalf("Directory already exists: %s\n", overlayDir)
 	}
-	if err := os.MkdirAll(overlayDir, 0644); err != nil {
+	if err := os.MkdirAll(overlayDir, 0774); err != nil {
 		log.Fatal(err)
 	}
 	mountPoint, err := ioutil.TempDir("", "ljbuild-")
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Building %s %s version %s\n", script.Type, script.Path, script.Version)
+	log.Printf("Building %s %s version %s to %s\n", script.Type, script.Path, script.Version, overlayDir)
 	mounter := new(Mounter)
 	mounter.Mount("nullfs", "ro", worldDir, mountPoint)
 	mounter.Mount("unionfs", "rw", overlayDir, mountPoint)
-	ljspawnCmd := exec.Command("ljspawn", "-n", filepath.Base(mountPoint), "-i", ipAddr, "-d", mountPoint, "-p", script.Buildscript)
+	ljspawnCmd := exec.Command("ljspawn", "-n", filepath.Base(mountPoint), "-i", ipAddr, "-f", ipIface, "-d", mountPoint, "-p", script.Buildscript)
 	ljspawnCmd.Stdout = os.Stdout
 	ljspawnCmd.Stderr = os.Stdout
 	runner := new(Runner)
 	runner.handleInterrupts()
 	code := <-runner.Run(ljspawnCmd)
-	time.Sleep(300 * time.Millisecond) // Wait for killall, just in case
+	time.Sleep(300 * time.Millisecond) // Wait for jail removal, just in case
 	mounter.UnmountAll()
 	syscall.Rmdir(mountPoint)
 	log.Printf("Finished with code %d\n", code)
