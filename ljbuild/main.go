@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/myfreeweb/lightjail/util"
 	"io/ioutil"
 	"log"
 	"os"
@@ -68,14 +69,14 @@ func runJailfile(path string) {
 		log.Fatal(err)
 	}
 	log.Printf("Building %s version %s\n", script.Path, script.Version)
-	mounter := new(Mounter)
+	mounter := new(util.Mounter)
 	mounter.Mount("nullfs", "ro", worldDir, mountPoint)
 	mounter.Mount("unionfs", "rw", overlayDir, mountPoint)
 	ljspawnCmd := exec.Command("ljspawn", "-n", filepath.Base(mountPoint), "-i", ipAddr, "-f", ipIface, "-d", mountPoint, "-p", script.Buildscript)
 	ljspawnCmd.Stdout = os.Stdout
 	ljspawnCmd.Stderr = os.Stdout
-	runner := new(Runner)
-	runner.handleInterrupts()
+	runner := new(util.Runner)
+	runner.HandleInterrupts()
 	code := <-runner.Run(ljspawnCmd)
 	time.Sleep(300 * time.Millisecond) // Wait for jail removal, just in case
 	mounter.UnmountAll()

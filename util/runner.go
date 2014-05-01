@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"log"
@@ -32,7 +32,7 @@ func (runner *Runner) Run(cmd *exec.Cmd) chan int {
 	return done
 }
 
-func (runner *Runner) handleInterrupts() {
+func (runner *Runner) HandleInterrupts() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
