@@ -3,7 +3,7 @@ ljspawn(1) -- spawn a process in a lightweight jail environment
 
 ## SYNOPSIS
 
-`ljspawn` [`-i` <IP-address>] [`-f` <network-interface>] [-n <name>] `-d` <directory> `-p` <process><br>
+`ljspawn` [`-i` <IP-address>] [`-f` <network-interface>] [`-n` <name>] [`-0`] `-d` <directory> `-p` <process><br>
 
 ## DESCRIPTION
 
@@ -22,6 +22,9 @@ It was made for running apps in a lightweight, ephemeral way, without any config
 
   `-n` <name>:
     The hostname and jail name that the jail will have.
+
+  `-0`:
+    Run the process as an unprivileged (nobody) user.
 
   `-d` <directory>:
     The directory that contains the jail environment.
