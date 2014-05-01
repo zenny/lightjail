@@ -143,7 +143,9 @@ int run() {
   llog("Running container %s in jail %d", dest, jresult);
   if (nobody) {
     system("pw useradd -n nobody -d /nonexistent -s /usr/sbin/nologin 2> /dev/null");
-    setuid(getpwnam("nobody")->pw_uid);
+    struct passwd* pw = getpwnam("nobody");
+    setgroups(1, &pw->pw_gid);
+    setuid(pw->pw_uid);
   }
   return execve("/bin/sh", (char *[]){ "sh", "-c", proc, 0 },
       (char *[]){ "PATH=/usr/local/bin:/usr/local/sbin:/usr/games:/usr/bin:/usr/sbin:/bin:/sbin",
