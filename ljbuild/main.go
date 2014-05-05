@@ -13,7 +13,9 @@ import (
 	"time"
 )
 
-var overrideVersion, ipAddr, ipIface string
+var options struct {
+	overrideVersion, ipAddr, ipIface string
+}
 
 func main() {
 	if _, err := exec.LookPath("ljspawn"); err != nil {
@@ -22,27 +24,31 @@ func main() {
 	if _, err := exec.LookPath("mount"); err != nil {
 		log.Fatal(err)
 	}
-	flag.StringVar(&overrideVersion, "v", "", "Override version")
-	flag.StringVar(&ipAddr, "i", "", "IPv4 address of the build jail")
-	flag.StringVar(&ipIface, "f", "", "network interface for the build jail")
-	flag.Parse()
+	parseOptions()
 	args := flag.Args()
 	if len(args) < 1 {
 		flag.Usage()
 		os.Exit(2)
 	}
-	if ipAddr == "" {
-		ipAddr = "192.168.1.240"
-	}
-	if ipIface == "" {
-		ipIface = "lo0"
-	}
 	runJailfile(args[0])
 }
 
+func parseOptions() {
+	flag.StringVar(&options.overrideVersion, "v", "", "Override version")
+	flag.StringVar(&options.ipAddr, "i", "", "IPv4 address of the build jail")
+	flag.StringVar(&options.ipIface, "f", "", "network interface for the build jail")
+	flag.Parse()
+	if options.ipAddr == "" {
+		options.ipAddr = "192.168.1.240"
+	}
+	if options.ipIface == "" {
+		options.ipIface = util.DefaultIpIface()
+	}
+}
+
 func runJailfile(path string) {
-	script := parseJailfile(readJailfile(path), overrideVersion)
-	script.RootDir = getRootDir()
+	script := parseJailfile(readJailfile(path), options.overrideVersion)
+	script.RootDir = util.RootDir()
 	script.Validate()
 	if err := os.MkdirAll(script.GetOverlayPath(), 0774); err != nil {
 		log.Fatal(err)
@@ -55,7 +61,7 @@ func runJailfile(path string) {
 	mounter := new(util.Mounter)
 	mounter.Mount("nullfs", "ro", script.GetWorldDir(), mountPoint)
 	mounter.Mount("unionfs", "rw", script.GetOverlayPath(), mountPoint)
-	ljspawnCmd := exec.Command("ljspawn", "-n", filepath.Base(mountPoint), "-i", ipAddr, "-f", ipIface, "-d", mountPoint, "-p", script.Buildscript)
+	ljspawnCmd := exec.Command("ljspawn", "-n", filepath.Base(mountPoint), "-i", options.ipAddr, "-f", options.ipIface, "-d", mountPoint, "-p", script.Buildscript)
 	ljspawnCmd.Stdout = os.Stdout
 	ljspawnCmd.Stderr = os.Stdout
 	runner := new(util.Runner)
@@ -82,12 +88,4 @@ func readJailfile(path string) string {
 		log.Fatal(err)
 	}
 	return string(fileSrc)
-}
-
-func getRootDir() string {
-	rootDir := os.Getenv("LIGHTJAIL_ROOT")
-	if rootDir == "" {
-		rootDir = "/usr/local/lj"
-	}
-	return rootDir
 }
