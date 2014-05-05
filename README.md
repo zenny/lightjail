@@ -24,9 +24,7 @@ The directories MUST be named with whatever version they contain (result of `una
 The installations MUST have ports and pkg configured.
 
 The overlays MUST be stored under the root.
-The directory structure SHOULD be like this: `type of the overlay + 's' / repo url [ / subdirectories inside repo ]`.
-For example, an overlay with type `language` installed from the directory `overlays/ruby` of git repo `github.com/myfreweeb/lightjail` will be stored in `languages/github.com/myfreeweb/lightjail/overlays/ruby`.
-ljbuild uses this structure automatically.
+Each overlay MUST be stored in a subdirectory, eg. `namespace / name`.
 
 ### Example world installation
 

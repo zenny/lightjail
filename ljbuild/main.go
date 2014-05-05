@@ -13,14 +13,6 @@ import (
 	"time"
 )
 
-type Script struct {
-	WorldVersion string
-	Type         string
-	Path         string
-	Version      string
-	Buildscript  string
-}
-
 var overrideVersion, ipAddr, ipIface string
 
 func main() {
@@ -30,7 +22,6 @@ func main() {
 	if _, err := exec.LookPath("mount"); err != nil {
 		log.Fatal(err)
 	}
-	// TODO: option to hide rootdir?
 	flag.StringVar(&overrideVersion, "v", "", "Override version")
 	flag.StringVar(&ipAddr, "i", "", "IPv4 address of the build jail")
 	flag.StringVar(&ipIface, "f", "", "network interface for the build jail")
@@ -51,18 +42,9 @@ func main() {
 
 func runJailfile(path string) {
 	script := parseJailfile(readJailfile(path), overrideVersion)
-	rootDir := getRootDir()
-	worldDir := filepath.Join(rootDir, "worlds", script.WorldVersion)
-	if _, err := os.Stat(worldDir); err != nil {
-		if os.IsNotExist(err) {
-			log.Fatalf("World does not exist: %s\n", script.WorldVersion)
-		}
-	}
-	overlayDir := script.getOverlayPath(rootDir)
-	if _, err := os.Stat(overlayDir); err == nil {
-		log.Fatalf("Directory already exists: %s\n", overlayDir)
-	}
-	if err := os.MkdirAll(overlayDir, 0774); err != nil {
+	script.RootDir = getRootDir()
+	script.Validate()
+	if err := os.MkdirAll(script.GetOverlayPath(), 0774); err != nil {
 		log.Fatal(err)
 	}
 	mountPoint, err := ioutil.TempDir("", "ljbuild-")
@@ -71,8 +53,8 @@ func runJailfile(path string) {
 	}
 	log.Printf("Building %s version %s\n", script.Path, script.Version)
 	mounter := new(util.Mounter)
-	mounter.Mount("nullfs", "ro", worldDir, mountPoint)
-	mounter.Mount("unionfs", "rw", overlayDir, mountPoint)
+	mounter.Mount("nullfs", "ro", script.GetWorldDir(), mountPoint)
+	mounter.Mount("unionfs", "rw", script.GetOverlayPath(), mountPoint)
 	ljspawnCmd := exec.Command("ljspawn", "-n", filepath.Base(mountPoint), "-i", ipAddr, "-f", ipIface, "-d", mountPoint, "-p", script.Buildscript)
 	ljspawnCmd.Stdout = os.Stdout
 	ljspawnCmd.Stderr = os.Stdout
@@ -108,8 +90,4 @@ func getRootDir() string {
 		rootDir = "/usr/local/lj"
 	}
 	return rootDir
-}
-
-func (script *Script) getOverlayPath(rootDir string) string {
-	return filepath.Join(rootDir, script.Path, script.Version)
 }
