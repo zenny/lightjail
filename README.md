@@ -29,6 +29,7 @@ pkg clean -aqy
 ```
 
 You can run ljbuild as non-root:
+
 1. add `vfs.usermount=1` to `/etc/sysctl.conf` and reload sysctl: `sysctl -f /etc/sysctl.conf`
 2. chown the worlds directory and all worlds you have to the user who will run ljbuild
 3. make sure `ljspawn` is `setuid` (the makefile does it)
@@ -67,4 +68,5 @@ umount $W/dev
 
 Running this as root should install a world to eg. `/usr/local/lj/worlds/10.0-RELEASE`.
 You don't have to do this on every server.
-Do it once, archive it with `cpio`, compress with `xz`, copy to all servers and extract there.
+Do it once, archive it with `cpio`, compress with `xz`, copy to all servers (*with the
+same CPU architecture, of course*) and extract there.
