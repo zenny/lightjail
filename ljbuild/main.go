@@ -18,12 +18,7 @@ var options struct {
 }
 
 func main() {
-	if _, err := exec.LookPath("ljspawn"); err != nil {
-		log.Fatal(err)
-	}
-	if _, err := exec.LookPath("mount"); err != nil {
-		log.Fatal(err)
-	}
+	util.CheckExecutables([]string{"mount", "umount", "ljspawn", "route", "uname"})
 	parseOptions()
 	args := flag.Args()
 	if len(args) < 1 {
