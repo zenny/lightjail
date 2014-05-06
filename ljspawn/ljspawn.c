@@ -126,7 +126,7 @@ int run() {
     j.ip4[0] = ip;
     pid_t ifconfig_pid = fork();
     if (ifconfig_pid == -1) die_errno("Could not fork");
-    if (ifconfig_pid <= 0) { // Parent
+    if (ifconfig_pid <= 0) { // Child
       return execv("/sbin/ifconfig", (char *[]){ "ifconfig", net_if, "alias", ip_s, 0 });
     }
   }
