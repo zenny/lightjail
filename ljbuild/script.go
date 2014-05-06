@@ -35,6 +35,8 @@ func (script *Script) Validate() {
 	if _, err := os.Stat(script.GetWorldDir()); err != nil {
 		if os.IsNotExist(err) {
 			errors = append(errors, fmt.Sprintf("World does not exist: %s", script.WorldVersion))
+		} else {
+			errors = append(errors, fmt.Sprintf("Cannot stat world: %s -- probably the server is not set up correctly", script.WorldVersion))
 		}
 	}
 
