@@ -44,7 +44,7 @@ func parseOptions() {
 }
 
 func runJailfile(path string) {
-	script := parseJailfile(readJailfile(path), options.overrideVersion)
+	script := parseJailfile(readFile(path), options.overrideVersion)
 	script.RootDir = util.RootDir()
 	script.Validate()
 	if err := os.MkdirAll(script.GetOverlayPath(), 0774); err != nil {
@@ -63,11 +63,11 @@ func runJailfile(path string) {
 	ljspawnCmd.Stderr = os.Stdout
 	runner := new(util.Runner)
 	handleInterrupts(runner)
-	code := <-runner.Run(ljspawnCmd)
+	exitCode := <-runner.Run(ljspawnCmd)
 	time.Sleep(300 * time.Millisecond) // Wait for jail removal, just in case
 	mounter.UnmountAll()
 	syscall.Rmdir(mountPoint)
-	log.Printf("Finished with code %d\n", code)
+	log.Printf("Finished with code %d\n", exitCode)
 }
 
 func handleInterrupts(runner *util.Runner) {
@@ -79,7 +79,7 @@ func handleInterrupts(runner *util.Runner) {
 	}()
 }
 
-func readJailfile(path string) string {
+func readFile(path string) string {
 	fileSrc, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Fatal(err)
