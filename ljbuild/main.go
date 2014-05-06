@@ -75,6 +75,7 @@ func handleInterrupts(runner *util.Runner) {
 	signal.Notify(interrupt, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
 		<-interrupt
+		log.Print("Interrupted by a signal, stopping.\n")
 		runner.Stop()
 	}()
 }
