@@ -21,11 +21,13 @@ func main() {
 	util.CheckExecutables([]string{"mount", "umount", "ljspawn", "route", "uname"})
 	parseOptions()
 	args := flag.Args()
+	var jfPath string
 	if len(args) < 1 {
-		flag.Usage()
-		os.Exit(2)
+		jfPath = "Jailfile"
+	} else {
+		jfPath = args[0]
 	}
-	runJailfile(args[0])
+	runJailfile(jfPath)
 }
 
 func parseOptions() {
