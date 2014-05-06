@@ -109,7 +109,7 @@ void wait_and_bleed(pid_t fpid) {
   llog("Process exited with status %d", status);
   jail_remove(*jail_id); // Make sure there are no orphans in the jail
   munmap(jail_id, sizeof *jail_id);
-  execv("/sbin/ifconfig", (char *[]){ "ifconfig", net_if, "-alias", ip_s, 0 });
+  if (ip_s != NULL) execv("/sbin/ifconfig", (char *[]){ "ifconfig", net_if, "-alias", ip_s, 0 });
 }
 
 int run() {
