@@ -73,14 +73,7 @@ void handle_sigterm() {
 }
 
 void usage(char *pname) {
-  puts("ljspawn -- spawn a process in a lightweight jail environment");
-  printf("usage: %s [options]\noptions:\n", pname);
-  puts("  -d /path/to/dir -- path to the temporary folder where you have your jail environment");
-  puts("  -i IP.AD.DR.ESS -- the jail's IPv4 address (optional)");
-  puts("  -f interface0 -- the network interface for aliasing the jail's IPv4 address to (optional, 'lo0' by default)");
-  puts("  -0 -- run as an unprivileged user (nobody)");
-  puts("  -n name -- the value for setting jailname and hostname (optional, 'lj' by default)");
-  puts("  -p '/path/to/process args' -- the shell command to execute in the jail");
+  printf("%s -- spawn a process in a lightweight jail environment\nusage: %s [-i <IP-address>] [-f <network-interface>] [-n <name>] [-0] -d <directory> -p <process>\nsee man %s for more info\n", pname, pname, pname);
 }
 
 void parse_options(int argc, char *argv[]) {
@@ -116,6 +109,7 @@ void wait_and_bleed(pid_t fpid) {
   llog("Process exited with status %d", status);
   jail_remove(*jail_id); // Make sure there are no orphans in the jail
   munmap(jail_id, sizeof *jail_id);
+  execv("/sbin/ifconfig", (char *[]){ "ifconfig", net_if, "-alias", ip_s, 0 });
 }
 
 int run() {
