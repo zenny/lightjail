@@ -20,8 +20,11 @@ func (rcmd *RunnerCommand) Stop() {
 	case <-rcmd.Done:
 	case <-time.After(2 * time.Second):
 		proc.Signal(syscall.SIGTERM) // TERM ljspawn -> it will KILL the process it runs
-	case <-time.After(8 * time.Second):
-		proc.Kill() // Something is fucked up and we have to KILL ljspawn
+		select {
+		case <-rcmd.Done:
+		case <-time.After(6 * time.Second):
+			proc.Kill() // Something is fucked up and we have to KILL ljspawn
+		}
 	}
 }
 
