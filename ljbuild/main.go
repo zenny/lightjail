@@ -18,7 +18,7 @@ var options struct {
 }
 
 func main() {
-	util.CheckExecutables([]string{"mount", "umount", "ljspawn", "route", "uname"})
+	util.CheckExecutables([]string{"mount", "umount", "ljspawn", "route", "uname", "cp"})
 	parseOptions()
 	args := flag.Args()
 	var jfPath string
@@ -26,6 +26,10 @@ func main() {
 		jfPath = "Jailfile"
 	} else {
 		jfPath = args[0]
+	}
+	jfPath, err := filepath.Abs(jfPath)
+	if err != nil {
+		log.Fatal(err)
 	}
 	runJailfile(jfPath)
 }
@@ -55,6 +59,11 @@ func runJailfile(path string) {
 		log.Fatal(err)
 	}
 	log.Printf("Building %s version %s\n", script.Name, script.Version)
+	if script.CopyDst != "" {
+		if err := exec.Command("cp", "-R", filepath.Dir(path)+"/", filepath.Join(script.GetOverlayPath(), script.CopyDst)).Run(); err != nil {
+			log.Fatal(err)
+		}
+	}
 	mounter := new(util.Mounter)
 	mounter.Mount("nullfs", "ro", script.GetWorldDir(), mountPoint)
 	for _, path := range script.GetFromPaths() {

@@ -20,8 +20,10 @@ The `Jailfile` build script format is simple:
 # Example: Jailfile for installing Ruby
 # Comments start with a # symbol, like in the shell
 name lang/ruby # Required. This is the directory where it will be built. MUST contain a slash (subdirectory)
-world 10.0-RELEASE # Techically optional, `uname -r` of the host will be used by default
 version 2.1.1 # Optional, a random string will be used by default
+world 10.0-RELEASE # Techically optional, `uname -r` of the host will be used by default
+from lang/common 1.0.0 # Optional. This is the parent overlay.
+copy / # Optional. Copies all files in the Jailfile's directory to the specified directory inside the overlay
 ---
 # After the separator, we have a shell script
 pkg install -y ruby21

@@ -56,6 +56,7 @@ type Script struct {
 	WorldVersion string
 	Buildscript  string
 	RootDir      string
+	CopyDst      string
 }
 
 func (script *Script) GetOverlayPath() string {

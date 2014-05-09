@@ -36,6 +36,11 @@ func parseJailfile(src, overrideVersion string) *Script {
 			script.Version = versionMatches[1]
 		}
 
+		copyDstMatches := regexp.MustCompile(`^copy ([^\n# ]+).*`).FindStringSubmatch(line)
+		if copyDstMatches != nil {
+			script.CopyDst = copyDstMatches[1]
+		}
+
 	}
 
 	if script.WorldVersion == "" {
