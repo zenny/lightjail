@@ -88,6 +88,26 @@ func (script *Script) Validate() {
 		errors = append(errors, "Container name must not contain '..'")
 	}
 
+	if strings.Contains(script.Version, "..") {
+		errors = append(errors, "Version must not contain '..'")
+	}
+
+	if strings.Contains(script.Version, "/") {
+		errors = append(errors, "Version must not contain '/'")
+	}
+
+	if strings.Contains(script.CopyDst, "..") {
+		errors = append(errors, "Copy must not contain '..'")
+	}
+
+	if strings.Contains(script.From.Name, "..") || strings.Contains(script.From.Version, "..") {
+		errors = append(errors, "From must not contain '..'")
+	}
+
+	if strings.Contains(script.WorldVersion, "..") {
+		errors = append(errors, "World must not contain '..'")
+	}
+
 	if _, err := os.Stat(script.GetWorldDir()); err != nil {
 		if os.IsNotExist(err) {
 			errors = append(errors, fmt.Sprintf("World does not exist: %s", script.WorldVersion))
