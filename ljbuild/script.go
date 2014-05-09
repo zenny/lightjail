@@ -82,6 +82,10 @@ func (script *Script) Validate() {
 		errors = append(errors, "Container name must contain at least one subdirectory (slash), i.e. me/myapp, not just myapp")
 	}
 
+	if strings.Contains(script.Name, "..") {
+		errors = append(errors, "Container name must not contain '..'")
+	}
+
 	if _, err := os.Stat(script.GetWorldDir()); err != nil {
 		if os.IsNotExist(err) {
 			errors = append(errors, fmt.Sprintf("World does not exist: %s", script.WorldVersion))
