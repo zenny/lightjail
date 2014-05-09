@@ -10,7 +10,6 @@ import (
 
 type Script struct {
 	WorldVersion string
-	Type         string
 	Path         string
 	Version      string
 	Buildscript  string
