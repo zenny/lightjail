@@ -24,6 +24,7 @@ func (mounter *Mounter) Mount(fs, opt, from, to string) {
 
 func (mounter *Mounter) MountDev(to string) {
 	mounter.runMount(exec.Command("mount", "-t", "devfs", "devfs", to))
+	mounter.runMount(exec.Command("devfs", "-m", to, "rule", "-s", "4", "applyset"))
 	mounter.Points = append(mounter.Points, to)
 }
 

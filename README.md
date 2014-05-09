@@ -39,6 +39,8 @@ You can run ljbuild as non-root:
 3. make sure `ljspawn` is `setuid` (the makefile does it)
 4. run it!
 
+There is a problem though -- building something as root makes it impossible to mount as non-root... so you can't build something `from` the container you built as non-root.
+
 ## The directory structure
 
 There is a root directory for all lightjail related things.
@@ -73,3 +75,11 @@ umount $W/dev
 Running this as root should install a world to eg. `/usr/local/lj/worlds/10.0-RELEASE`.
 You don't have to do this on every server.
 Do it once, archive it with `cpio`, compress with `xz`, copy to all servers (*with the same CPU architecture, of course*) and extract there.
+
+## Requirements
+
+1. You must rebuild your kernel with RCTL ([14.13.2. Enabling and Configuring Resource Limits](http://www.freebsd.org/doc/handbook/security-resourcelimits.html#idp76631728)), otherwise limiting containers' RAM won't work
+2. You must set up devfs rules:
+  - copy `/etc/defaults/devfs.rules` to `/etc/devfs.rules`
+  - `sudo sysrc devfs_load_rulesets="YES"`
+  - `sudo service devfs restart`

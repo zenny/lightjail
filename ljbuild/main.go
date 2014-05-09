@@ -18,7 +18,7 @@ var options struct {
 }
 
 func main() {
-	util.CheckExecutables([]string{"mount", "umount", "ljspawn", "route", "uname", "cp"})
+	util.CheckExecutables([]string{"mount", "umount", "devfs", "ljspawn", "route", "uname", "cp"})
 	parseOptions()
 	args := flag.Args()
 	var jfPath string
