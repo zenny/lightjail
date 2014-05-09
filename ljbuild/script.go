@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/myfreeweb/lightjail/util"
 	"io/ioutil"
 	"log"
 	"os"
@@ -43,7 +44,8 @@ func ReadOverlay(path string) Overlay {
 func (overlay *Overlay) GetFromPaths(rootDir string) []string {
 	paths := []string{}
 	if overlay.From != nil {
-		path := filepath.Join(rootDir, overlay.From.Name, overlay.From.Version)
+		unversionedPath := filepath.Join(rootDir, overlay.From.Name)
+		path := filepath.Join(unversionedPath, util.FindPrefixedFile(unversionedPath, overlay.From.Version))
 		parent := ReadOverlay(filepath.Join(path, "overlay.json"))
 		paths = append(paths, parent.GetFromPaths(rootDir)...)
 		paths = append(paths, path)
