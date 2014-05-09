@@ -32,15 +32,6 @@ pkg install -y ruby21
 pkg clean -aqy
 ```
 
-You can run ljbuild as non-root:
-
-1. add `vfs.usermount=1` to `/etc/sysctl.conf` and reload sysctl: `sysctl -f /etc/sysctl.conf`
-2. chown the worlds directory and all worlds you have to the user who will run ljbuild
-3. make sure `ljspawn` is `setuid` (the makefile does it)
-4. run it!
-
-There is a problem though -- building something as root makes it impossible to mount as non-root... so you can't build something `from` the container you built as non-root.
-
 ## The directory structure
 
 There is a root directory for all lightjail related things.

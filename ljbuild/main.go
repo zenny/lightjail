@@ -14,11 +14,11 @@ import (
 )
 
 var options struct {
-	overrideVersion, ipAddr, ipIface string
+	overrideVersion, ipAddr, ipIface, ramLimitSoft, ramLimitHard string
 }
 
 func main() {
-	util.CheckExecutables([]string{"mount", "umount", "devfs", "ljspawn", "route", "uname", "cp"})
+	util.CheckExecutables([]string{"mount", "umount", "devfs", "rctl", "ljspawn", "route", "uname", "cp"})
 	parseOptions()
 	args := flag.Args()
 	var jfPath string
@@ -38,12 +38,20 @@ func parseOptions() {
 	flag.StringVar(&options.overrideVersion, "v", "", "Override version")
 	flag.StringVar(&options.ipAddr, "i", "", "IPv4 address of the build jail")
 	flag.StringVar(&options.ipIface, "f", "", "network interface for the build jail")
+	flag.StringVar(&options.ramLimitSoft, "r", "", "soft RAM limit (eg. 500m)")
+	flag.StringVar(&options.ramLimitHard, "R", "", "hard RAM limit (eg. 512m)")
 	flag.Parse()
 	if options.ipAddr == "" {
 		options.ipAddr = "192.168.1.240"
 	}
 	if options.ipIface == "" {
 		options.ipIface = util.DefaultIpIface()
+	}
+	if options.ramLimitSoft == "" {
+		options.ramLimitSoft = "500m"
+	}
+	if options.ramLimitHard == "" {
+		options.ramLimitHard = "512m"
 	}
 }
 
@@ -71,7 +79,10 @@ func runJailfile(path string) {
 	}
 	mounter.Mount("unionfs", "rw", script.GetOverlayPath(), mountPoint)
 	mounter.MountDev(filepath.Join(mountPoint, "dev"))
-	ljspawnCmd := exec.Command("ljspawn", "-n", filepath.Base(mountPoint), "-i", options.ipAddr, "-f", options.ipIface, "-d", mountPoint, "-p", script.Buildscript)
+	jailName := filepath.Base(mountPoint)
+	rctl := new(util.Rctl)
+	rctl.LimitJailRam(jailName, options.ramLimitSoft, options.ramLimitHard)
+	ljspawnCmd := exec.Command("ljspawn", "-n", jailName, "-i", options.ipAddr, "-f", options.ipIface, "-d", mountPoint, "-p", script.Buildscript)
 	ljspawnCmd.Stdout = os.Stdout
 	ljspawnCmd.Stderr = os.Stdout
 	runner := new(util.Runner)
@@ -80,6 +91,7 @@ func runJailfile(path string) {
 	script.Overlay.Save(filepath.Join(script.GetOverlayPath(), "overlay.json"))
 	time.Sleep(300 * time.Millisecond) // Wait for jail removal, just in case
 	mounter.UnmountAll()
+	rctl.RemoveAll()
 	syscall.Rmdir(mountPoint)
 	log.Printf("Finished with code %d\n", exitCode)
 }
