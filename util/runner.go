@@ -1,7 +1,6 @@
 package util
 
 import (
-	"log"
 	"os/exec"
 	"sync"
 	"syscall"
@@ -40,7 +39,7 @@ func (runner *Runner) Run(cmd *exec.Cmd) chan int {
 	runner.Commands = append(runner.Commands, RunnerCommand{cmd, done})
 	runner.Unlock()
 	if err := cmd.Start(); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	go func() {
 		state, _ := cmd.Process.Wait()

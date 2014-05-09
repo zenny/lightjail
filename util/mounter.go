@@ -1,7 +1,6 @@
 package util
 
 import (
-	"log"
 	"os"
 	"os/exec"
 )
@@ -13,7 +12,7 @@ type Mounter struct {
 func (mounter *Mounter) runMount(mountCmd *exec.Cmd) {
 	mountCmd.Stderr = os.Stdout
 	if err := mountCmd.Run(); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 }
 

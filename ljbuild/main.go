@@ -56,6 +56,13 @@ func parseOptions() {
 }
 
 func runJailfile(path string) {
+	defer func() {
+		// panic + log.Fatal through recover() instead of direct log.Fatal allows
+		// deferred function calls -> no leftover mounts/rctls/tmpdirs after errors!
+		if r := recover(); r != nil {
+			log.Fatal(r)
+		}
+	}()
 	script := parseJailfile(readFile(path), options.overrideVersion)
 	script.RootDir = util.RootDir()
 	script.Validate()
@@ -66,6 +73,7 @@ func runJailfile(path string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer syscall.Rmdir(mountPoint)
 	log.Printf("Building %s version %s\n", script.Name, script.Version)
 	if script.CopyDst != "" {
 		if err := exec.Command("cp", "-R", filepath.Dir(path)+"/", filepath.Join(script.GetOverlayPath(), script.CopyDst)).Run(); err != nil {
@@ -73,6 +81,7 @@ func runJailfile(path string) {
 		}
 	}
 	mounter := new(util.Mounter)
+	defer mounter.UnmountAll()
 	mounter.Mount("nullfs", "ro", script.GetWorldDir(), mountPoint)
 	for _, path := range script.GetFromPaths() {
 		mounter.Mount("unionfs", "ro", path, mountPoint)
@@ -82,6 +91,7 @@ func runJailfile(path string) {
 	jailName := filepath.Base(mountPoint)
 	rctl := new(util.Rctl)
 	rctl.LimitJailRam(jailName, options.ramLimitSoft, options.ramLimitHard)
+	defer rctl.RemoveAll()
 	ljspawnCmd := exec.Command("ljspawn", "-n", jailName, "-i", options.ipAddr, "-f", options.ipIface, "-d", mountPoint, "-p", script.Buildscript)
 	ljspawnCmd.Stdout = os.Stdout
 	ljspawnCmd.Stderr = os.Stdout
@@ -90,9 +100,6 @@ func runJailfile(path string) {
 	exitCode := <-runner.Run(ljspawnCmd)
 	script.Overlay.Save(filepath.Join(script.GetOverlayPath(), "overlay.json"))
 	time.Sleep(300 * time.Millisecond) // Wait for jail removal, just in case
-	mounter.UnmountAll()
-	rctl.RemoveAll()
-	syscall.Rmdir(mountPoint)
 	log.Printf("Finished with code %d\n", exitCode)
 }
 
