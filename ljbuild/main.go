@@ -54,7 +54,7 @@ func runJailfile(path string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Building %s version %s\n", script.Path, script.Version)
+	log.Printf("Building %s version %s\n", script.Name, script.Version)
 	mounter := new(util.Mounter)
 	mounter.Mount("nullfs", "ro", script.GetWorldDir(), mountPoint)
 	mounter.Mount("unionfs", "rw", script.GetOverlayPath(), mountPoint)

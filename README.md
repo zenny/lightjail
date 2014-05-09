@@ -19,8 +19,8 @@ The `Jailfile` build script format is simple:
 ```bash
 # Example: Jailfile for installing Ruby
 # Comments start with a # symbol, like in the shell
+name lang/ruby # Required. This is the directory where it will be built. MUST contain a slash (subdirectory)
 world 10.0-RELEASE # Techically optional, `uname -r` of the host will be used by default
-provides lang/ruby # Required. This is the directory where it will be built. MUST contain a slash (subdirectory)
 version 2.1.1 # Optional, a random string will be used by default
 ---
 # After the separator, we have a shell script
@@ -68,5 +68,4 @@ umount $W/dev
 
 Running this as root should install a world to eg. `/usr/local/lj/worlds/10.0-RELEASE`.
 You don't have to do this on every server.
-Do it once, archive it with `cpio`, compress with `xz`, copy to all servers (*with the
-same CPU architecture, of course*) and extract there.
+Do it once, archive it with `cpio`, compress with `xz`, copy to all servers (*with the same CPU architecture, of course*) and extract there.
