@@ -57,13 +57,18 @@ func runJailfile(path string) {
 	log.Printf("Building %s version %s\n", script.Name, script.Version)
 	mounter := new(util.Mounter)
 	mounter.Mount("nullfs", "ro", script.GetWorldDir(), mountPoint)
+	for _, path := range script.GetFromPaths() {
+		mounter.Mount("unionfs", "ro", path, mountPoint)
+	}
 	mounter.Mount("unionfs", "rw", script.GetOverlayPath(), mountPoint)
+	mounter.MountDev(filepath.Join(mountPoint, "dev"))
 	ljspawnCmd := exec.Command("ljspawn", "-n", filepath.Base(mountPoint), "-i", options.ipAddr, "-f", options.ipIface, "-d", mountPoint, "-p", script.Buildscript)
 	ljspawnCmd.Stdout = os.Stdout
 	ljspawnCmd.Stderr = os.Stdout
 	runner := new(util.Runner)
 	handleInterrupts(runner)
 	exitCode := <-runner.Run(ljspawnCmd)
+	script.Overlay.Save(filepath.Join(script.GetOverlayPath(), "overlay.json"))
 	time.Sleep(300 * time.Millisecond) // Wait for jail removal, just in case
 	mounter.UnmountAll()
 	syscall.Rmdir(mountPoint)

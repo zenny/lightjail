@@ -26,11 +26,9 @@ func parseJailfile(src, overrideVersion string) *Script {
 			script.Name = nameMatches[1]
 		}
 
-		fromMatches := regexp.MustCompile(`^from ([^\n# ]+).*`).FindStringSubmatch(line)
+		fromMatches := regexp.MustCompile(`^from ([^\n# ]+) ([^\n# ]+).*`).FindStringSubmatch(line)
 		if fromMatches != nil {
-			// Only one from directive is allowed, but I don't want validation to happen in two places
-			// So we parse all of them there and check the slice length in the validation step
-			script.From = append(script.From, fromMatches[1])
+			script.From = &Overlay{Name: fromMatches[1], Version: fromMatches[2]}
 		}
 
 		versionMatches := regexp.MustCompile(`^version ([^\n# ]+).*`).FindStringSubmatch(line)

@@ -1,20 +1,61 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
+type Overlay struct {
+	Name    string
+	Version string
+	From    *Overlay
+}
+
+func (overlay *Overlay) Save(path string) {
+	bytes, err := json.Marshal(overlay)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = ioutil.WriteFile(path, bytes, 0444)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func ReadOverlay(path string) Overlay {
+	bytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var overlay Overlay
+	err = json.Unmarshal(bytes, &overlay)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return overlay
+}
+
+func (overlay *Overlay) GetFromPaths(rootDir string) []string {
+	paths := []string{}
+	if overlay.From != nil {
+		path := filepath.Join(rootDir, overlay.From.Name, overlay.From.Version)
+		parent := ReadOverlay(filepath.Join(path, "overlay.json"))
+		paths = append(paths, parent.GetFromPaths(rootDir)...)
+		paths = append(paths, path)
+	}
+	return paths
+}
+
 type Script struct {
-	Name         string
+	Overlay
 	WorldVersion string
-	Version      string
 	Buildscript  string
 	RootDir      string
-	From         []string
 }
 
 func (script *Script) GetOverlayPath() string {
@@ -23,6 +64,10 @@ func (script *Script) GetOverlayPath() string {
 
 func (script *Script) GetWorldDir() string {
 	return filepath.Join(script.RootDir, "worlds", script.WorldVersion)
+}
+
+func (script *Script) GetFromPaths() []string {
+	return script.Overlay.GetFromPaths(script.RootDir)
 }
 
 func (script *Script) Validate() {
@@ -46,10 +91,6 @@ func (script *Script) Validate() {
 
 	if _, err := os.Stat(script.GetOverlayPath()); err == nil {
 		errors = append(errors, fmt.Sprintf("Directory already exists: %s", script.GetOverlayPath()))
-	}
-
-	if len(script.From) > 1 {
-		errors = append(errors, "Only one 'from' directive can be present")
 	}
 
 	if len(errors) > 0 {
