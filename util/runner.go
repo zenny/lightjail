@@ -52,7 +52,7 @@ func (runner *Runner) Run(cmd *exec.Cmd) chan int {
 	return done
 }
 
-func (runner *Runner) Stop() {
+func (runner *Runner) Cleanup() {
 	var waitGrp sync.WaitGroup
 	waitGrp.Add(len(runner.Commands))
 	for _, rcmd := range runner.Commands {

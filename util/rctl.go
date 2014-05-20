@@ -22,7 +22,7 @@ func (rctl *Rctl) LimitJailRam(jname, soft, hard string) {
 	}
 }
 
-func (rctl *Rctl) RemoveAll() {
+func (rctl *Rctl) Cleanup() {
 	for _, lim := range rctl.Limits {
 		if err := exec.Command("rctl", "-r", lim).Run(); err != nil {
 			panic(err)

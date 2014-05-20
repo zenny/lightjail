@@ -31,7 +31,7 @@ func (mounter *Mounter) Unmount(from string) {
 	mounter.runMount(exec.Command("umount", from))
 }
 
-func (mounter *Mounter) UnmountAll() {
+func (mounter *Mounter) Cleanup() {
 	for i := len(mounter.Points) - 1; i >= 0; i-- {
 		mounter.Unmount(mounter.Points[i])
 	}

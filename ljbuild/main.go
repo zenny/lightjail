@@ -81,7 +81,7 @@ func runJailfile(path string) {
 		}
 	}
 	mounter := new(util.Mounter)
-	defer mounter.UnmountAll()
+	defer mounter.Cleanup()
 	mounter.Mount("nullfs", "ro", script.GetWorldDir(), mountPoint)
 	for _, path := range script.GetFromPaths() {
 		mounter.Mount("unionfs", "ro", path, mountPoint)
@@ -91,7 +91,7 @@ func runJailfile(path string) {
 	jailName := filepath.Base(mountPoint)
 	rctl := new(util.Rctl)
 	rctl.LimitJailRam(jailName, options.ramLimitSoft, options.ramLimitHard)
-	defer rctl.RemoveAll()
+	defer rctl.Cleanup()
 	ljspawnCmd := exec.Command("ljspawn", "-n", jailName, "-i", options.ipAddr, "-f", options.ipIface, "-d", mountPoint, "-p", script.Buildscript)
 	ljspawnCmd.Stdout = os.Stdout
 	ljspawnCmd.Stderr = os.Stdout
@@ -109,7 +109,7 @@ func handleInterrupts(runner *util.Runner) {
 	go func() {
 		<-interrupt
 		log.Print("Interrupted by a signal, stopping.\n")
-		runner.Stop()
+		runner.Cleanup()
 	}()
 }
 
