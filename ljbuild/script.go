@@ -88,6 +88,10 @@ func (script *Script) Validate() {
 		errors = append(errors, "Container name must not contain '..'")
 	}
 
+	if strings.Contains(script.Name, ":") {
+		errors = append(errors, "Container name must not contain ':'") // because rctl
+	}
+
 	if strings.Contains(script.Version, "..") {
 		errors = append(errors, "Version must not contain '..'")
 	}
