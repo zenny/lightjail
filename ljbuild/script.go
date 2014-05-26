@@ -45,7 +45,7 @@ func (overlay *Overlay) GetFromPaths(rootDir string) []string {
 	paths := []string{}
 	if overlay.From != nil {
 		unversionedPath := filepath.Join(rootDir, overlay.From.Name)
-		path := filepath.Join(unversionedPath, util.FindPrefixedFile(unversionedPath, overlay.From.Version))
+		path := filepath.Join(unversionedPath, util.FindMaxVersionFile(unversionedPath, overlay.From.Version))
 		parent := ReadOverlay(filepath.Join(path, "overlay.json"))
 		paths = append(paths, parent.GetFromPaths(rootDir)...)
 		paths = append(paths, path)

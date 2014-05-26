@@ -22,9 +22,8 @@ The `Jailfile` build script format is simple:
 name lang/ruby # Required. This is the directory where it will be built. MUST contain a slash (subdirectory)
 version 2.1.1 # Optional, a random string will be used by default
 world 10.0-RELEASE # Techically optional, `uname -r` of the host will be used by default
-from lang/common 1.0.0 # Optional. This is the parent overlay.
-                       # Prefix search is used for the version.
-                       # If you specify 2.1, it will use 2.1.1 if [2.1.0, 2.1.1] exist
+from lang/common ~> 1.0 # Optional. This is the parent overlay.
+                        # You can use any constraints supported by gosemver here.
 copy / # Optional. Copies all files in the Jailfile's directory to the specified directory inside the overlay
 ---
 # After the separator, we have a shell script

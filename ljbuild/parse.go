@@ -26,7 +26,7 @@ func parseJailfile(src, overrideVersion string) *Script {
 			script.Name = nameMatches[1]
 		}
 
-		fromMatches := regexp.MustCompile(`^from ([^\n# ]+) ([^\n# ]+).*`).FindStringSubmatch(line)
+		fromMatches := regexp.MustCompile(`^from ([^\n# ]+) ([^\n#]+).*`).FindStringSubmatch(line)
 		if fromMatches != nil {
 			script.From = &Overlay{Name: fromMatches[1], Version: fromMatches[2]}
 		}

@@ -1,24 +1,30 @@
 package util
 
 import (
+	"github.com/myfreeweb/gosemver"
 	"io/ioutil"
 	"log"
-	"sort"
-	"strings"
 )
 
-func FindPrefixedFile(dir, prefix string) string {
+func FindMaxVersionFile(dir, constraint string) string {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		log.Fatal(err)
 	}
-	names := []string{}
-	for _, file := range files {
-		fname := file.Name()
-		if strings.HasPrefix(fname, prefix) {
-			names = append(names, fname)
-		}
+
+	filenames := make([]string, len(files))
+	for i, file := range files {
+		filenames[i] = file.Name()
 	}
-	sort.Strings(names)
-	return names[len(names)-1]
+
+	versions, err := gosemver.ParseVersions(filenames)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	maxv, err := gosemver.FindMax(versions, constraint)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return maxv.String()
 }
