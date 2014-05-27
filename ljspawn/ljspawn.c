@@ -99,7 +99,7 @@ void wait_and_bleed(pid_t fpid) {
   if (ip_s != NULL) execv("/sbin/ifconfig", (char *[]){ "ifconfig", net_if, "-alias", ip_s, 0 });
 }
 
-int run() {
+void run() {
   struct jail j;
   j.version = JAIL_API_VERSION;
   j.path = dest;
@@ -114,7 +114,7 @@ int run() {
     pid_t ifconfig_pid = fork();
     if (ifconfig_pid == -1) die_errno("Could not fork");
     if (ifconfig_pid <= 0) { // Child
-      return execv("/sbin/ifconfig", (char *[]){ "ifconfig", net_if, "alias", ip_s, 0 });
+      execv("/sbin/ifconfig", (char *[]){ "ifconfig", net_if, "alias", ip_s, 0 });
     }
   }
   int jresult = jail(&j);
@@ -143,7 +143,7 @@ int run() {
 
 int main(int argc, char *argv[]) {
   parse_options(argc, argv);
-  llog("Going to start the command '%s' in %s\n", proc, dest);
+  llog("Going to run in %s\n", dest);
   jail_id = (int*) mmap(NULL, sizeof *jail_id, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
   if (jail_id == MAP_FAILED) die_errno("mmap failed");
   *jail_id = -1;
@@ -152,6 +152,7 @@ int main(int argc, char *argv[]) {
   if (p_fpid > 0) { // Parent
     wait_and_bleed(p_fpid);
   } else { // Child
-    return run();
+    run();
   }
+  return 0;
 }
