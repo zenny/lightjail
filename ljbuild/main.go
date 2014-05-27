@@ -60,7 +60,7 @@ func runJailfile(path string) {
 		// panic + log.Fatal through recover() instead of direct log.Fatal allows
 		// deferred function calls -> no leftover mounts/rctls/tmpdirs after errors!
 		if r := recover(); r != nil {
-			log.Fatal(r)
+			log.Fatalf("Fatal error: %v", r)
 		}
 	}()
 	script := parseJailfile(readFile(path), options.overrideVersion)

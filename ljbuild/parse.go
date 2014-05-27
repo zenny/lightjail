@@ -8,12 +8,12 @@ import (
 )
 
 func parseJailfile(src, overrideVersion string) *Script {
-	fileParts := strings.SplitN(src, "\n---\n", 2)
+	fileParts := strings.SplitN(src, "\n#!", 2)
 	if len(fileParts) != 2 {
-		log.Fatal("The Jailfile does not contain a '---' separator")
+		log.Fatal("The Jailfile does not contain '#!'")
 	}
 	script := new(Script)
-	script.Buildscript = fileParts[1]
+	script.Buildscript = "#!" + fileParts[1]
 	for _, line := range strings.Split(fileParts[0], "\n") {
 
 		worldMatches := regexp.MustCompile(`^world ([^\n ]+).*`).FindStringSubmatch(line)

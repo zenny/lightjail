@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <sys/mman.h>
 #include <sys/file.h>
+#include <sys/stat.h>
 #include <arpa/inet.h>
 #include <pwd.h>
 #include <signal.h>
@@ -26,7 +27,7 @@ char *net_if = DEFAULT_IFACE;
 char *ip_s = NULL;
 struct in_addr ip;
 char *name = DEFAULT_NAME;
-char *proc = "echo 'Hello world'";
+char *proc = "#!/bin/sh\necho 'Hello world'";
 bool nobody = false;
 pid_t p_fpid;
 
@@ -121,17 +122,23 @@ int run() {
   *jail_id = jresult;
   chdir("/");
   llog("Running container %s in jail %d", dest, jresult);
+  char *tmpname = malloc(22);
+  strcpy(tmpname, "/tmp/ljspawn.XXXXXXXX");
+  int scriptfd = mkstemp(tmpname); // tmpname IS REPLACED WITH ACTUAL NAME HERE
+  if (scriptfd == -1) die_errno("Could not open temp file");
+  write(scriptfd, proc, strlen(proc));
+  if (fchmod(scriptfd, strtol("0755", 0, 8)) == -1) die_errno("Could not chmod temp file");
+  close(scriptfd);
   if (nobody) {
     system("pw useradd -n nobody -d /nonexistent -s /usr/sbin/nologin 2> /dev/null");
     struct passwd* pw = getpwnam("nobody");
     setgroups(1, &pw->pw_gid);
     setuid(pw->pw_uid);
   }
-  return execve("/bin/sh", (char *[]){ "sh", "-c", proc, 0 },
+  if (execve(tmpname, (char *[]){ tmpname, 0 },
       (char *[]){ "PATH=/usr/local/bin:/usr/local/sbin:/usr/games:/usr/bin:/usr/sbin:/bin:/sbin",
                   "LC_ALL=en_US.UTF-8",
-                  "LANG=en_US.UTF-8",
-                  "SHELL=/bin/sh", 0 });
+                  "LANG=en_US.UTF-8", 0 }) == -1) die_errno("Could not spawn process");
 }
 
 int main(int argc, char *argv[]) {

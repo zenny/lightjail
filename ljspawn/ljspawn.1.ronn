@@ -37,8 +37,8 @@ It was made for running apps in a lightweight, ephemeral way, without any config
       4. mount a temporary directory using unionfs in read-write mode
 
   `-p` <process>:
-    The command that will be run in the jail environment.
-    Technically optional, but will be `echo 'Hello world'` by default, which is not very useful.
+    The interpreter script that will be run in the jail environment.
+    Technically optional, but will be `#!/bin/sh\necho 'Hello world'` by default, which is not very useful.
 
 ## COPYRIGHT
 

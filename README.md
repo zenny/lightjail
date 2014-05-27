@@ -25,8 +25,8 @@ world 10.0-RELEASE # Techically optional, `uname -r` of the host will be used by
 from lang/common ~> 1.0 # Optional. This is the parent overlay.
                         # You can use any constraints supported by gosemver here.
 copy / # Optional. Copies all files in the Jailfile's directory to the specified directory inside the overlay
----
-# After the separator, we have a shell script
+
+#!/bin/sh
 pkg install -y ruby21
 pkg clean -aqy
 ```
@@ -56,9 +56,10 @@ make installworld DESTDIR=$W
 make distribution DESTDIR=$W
 cp /etc/resolv.conf $W/etc
 mount -t devfs devfs $W/dev
-ljspawn -f $IFACE -d $W -p 'portsnap fetch extract' 
-ljspawn -f $IFACE -d $W -p 'make -C/usr/ports/ports-mgmt/pkg install clean' 
-ljspawn -f $IFACE -d $W -p 'pkg' 
+ljspawn -f $IFACE -d $W -p '#!/bin/sh
+portsnap fetch extract 
+make -C/usr/ports/ports-mgmt/pkg install clean
+pkg'
 umount $W/dev
 ```
 
