@@ -36,22 +36,13 @@ func main() {
 
 func parseOptions() {
 	flag.StringVar(&options.overrideVersion, "v", "", "Override version")
-	flag.StringVar(&options.ipAddr, "i", "", "IPv4 address of the build jail")
-	flag.StringVar(&options.ipIface, "f", "", "network interface for the build jail")
-	flag.StringVar(&options.ramLimitSoft, "r", "", "soft RAM limit (eg. 500m)")
-	flag.StringVar(&options.ramLimitHard, "R", "", "hard RAM limit (eg. 512m)")
+	flag.StringVar(&options.ipAddr, "i", "192.168.1.240", "IPv4 address of the build jail")
+	flag.StringVar(&options.ipIface, "f", "default", "network interface for the build jail")
+	flag.StringVar(&options.ramLimitSoft, "r", "500m", "soft RAM limit")
+	flag.StringVar(&options.ramLimitHard, "R", "512m", "hard RAM limit")
 	flag.Parse()
-	if options.ipAddr == "" {
-		options.ipAddr = "192.168.1.240"
-	}
-	if options.ipIface == "" {
+	if options.ipIface == "default" {
 		options.ipIface = util.DefaultIpIface()
-	}
-	if options.ramLimitSoft == "" {
-		options.ramLimitSoft = "500m"
-	}
-	if options.ramLimitHard == "" {
-		options.ramLimitHard = "512m"
 	}
 }
 
