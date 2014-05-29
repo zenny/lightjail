@@ -127,7 +127,7 @@ void run() {
   int scriptfd = mkstemp(tmpname); // tmpname IS REPLACED WITH ACTUAL NAME HERE
   if (scriptfd == -1) die_errno("Could not open temp file");
   write(scriptfd, proc, strlen(proc));
-  if (fchmod(scriptfd, strtol("0755", 0, 8)) == -1) die_errno("Could not chmod temp file");
+  if (fchmod(scriptfd, (unsigned short) strtol("0755", 0, 8)) == -1) die_errno("Could not chmod temp file");
   close(scriptfd);
   if (nobody) {
     system("pw useradd -n nobody -d /nonexistent -s /usr/sbin/nologin 2> /dev/null");

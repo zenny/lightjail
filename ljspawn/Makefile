@@ -1,5 +1,9 @@
 CC ?= cc
-CFLAGS += -g -Ofast -fPIC -fPIE -Wall -Wextra -Wformat-security -fstack-protector-all -fsanitize=bounds
+CFLAGS += -g -Ofast
+CFLAGS += -Wall -Wextra -Wconversion -Wno-unused-parameter -Wstrict-overflow -Wformat-security -Wformat=2 -Wno-format-nonliteral
+CFLAGS += -fstack-protector-all -fsanitize=bounds
+CFLAGS += -fPIC -fPIE
+LDFLAGS += -pie -Wl,z,noexecstack -Wl,z,noexecheap -Wl,z,now -Wl,-z,relro
 RONN ?= ronn
 PREFIX ?= /usr/local
 
