@@ -7,7 +7,6 @@ Projects like PaaS, CI, secure sandboxing, development environments will find it
 
 At the core of lightjail is the very lightweight `ljspawn` tool.
 It allows you to use FreeBSD's `jail` syscall without using the stock FreeBSD jail infrastructure, which was designed for persistent virtual environments, not one-off ephemeral processes.
-It's installed as a `setuid` binary, so you can run jails as non-root.
 Hopefully, it's secure :-)
 
 ## ljbuild
