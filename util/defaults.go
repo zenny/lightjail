@@ -16,7 +16,7 @@ func RandomVersion() string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return strings.TrimRight(base32.StdEncoding.EncodeToString(ver), "=")
+	return "0.0.0-" + strings.TrimRight(base32.StdEncoding.EncodeToString(ver), "=")
 }
 
 func DefaultIpIface() string {
