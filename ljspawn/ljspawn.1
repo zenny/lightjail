@@ -1,0 +1,70 @@
+.Dd May 2014
+.Dt LJSPAWN 1
+.Os 
+.Sh NAME
+.Nm ljspawn
+.Nd spawn a process in a lightweight jail environment
+.Sh SYNOPSIS
+.Nm
+.Op Fl i Ar ip-address
+.Op Fl f Ar network-interface
+.Op Fl n Ar name
+.Op Fl 0
+.Op Fl d Ar directory
+.Op Fl p Ar process
+.Sh DESCRIPTION
+.Nm
+runs the
+.Ar process
+in a FreeBSD jail under
+.Ar directory
+with an optional
+.Ar ip-address
+and a
+.Ar name .
+It was made for running apps in a lightweight, ephemeral way, without any config files.
+.Pp
+The options are as follows:
+.Bl -tag -width indent
+.It Fl i Ar ip-address
+The IP address that the jail will have
+.It Fl f Ar network-interface
+The network interface on which the IP address of the jail will be set.
+By default, it is `lo0`.
+.It Fl n Ar name
+The hostname and jail name that the jail will have.
+.It Fl 0
+Run the process inside the jail as an unprivileged (nobody) user.
+.It Fl d Ar directory
+The directory that contains the jail environment.
+At least, it must have a FreeBSD base system (world), installed by
+.br
+  make -C/usr/src installworld DESTDIR=<directory>
+.br
+But a lot of applications might require a `devfs`.
+.br
+The recommended way to prepare a directory for ljspawn is:
+.Bl -enum -compact
+.It
+mount a world using nullfs in read-only mode
+.It
+mount devfs with a limited set of devices
+.It
+mount the application using unionfs in read-only mode
+.It
+mount a temporary directory using unionfs in read-write mode
+.El
+.It Fl p Ar process
+The interpreter script (see
+.Xr execve 2 )
+that will be run in the jail environment.
+Technically optional, but will be
+.br
+  #!/bin/sh
+.br
+  echo 'Hello world'
+.br
+by default, which is not very useful.
+.El
+.Sh AUTHORS
+.An "Greg V" Aq floatboth@me.com
