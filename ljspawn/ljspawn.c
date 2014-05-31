@@ -66,9 +66,9 @@ void parse_options(int argc, char *argv[]) {
     }
   }
   if (dest == NULL) { usage(argv[0]); die("message", "Cannot run without directory (-d)"); }
-  if (ip_s == NULL) log(WARN, "message", "Running without an IP address (-i)");
+  if (ip_s == NULL) log(WARNING, "message", "Running without an IP address (-i)");
   if (ip_s != NULL && inet_pton(AF_INET, ip_s, &ip) <= 0) die("message", "Cannot parse IPv4 address", "ip", ip_s);
-  if (name == default_name) log(WARN, "message", "Running with default name (-n)");
+  if (name == default_name) log(WARNING, "message", "Running with default name (-n)");
 }
 
 static int *jail_id;
@@ -84,7 +84,7 @@ void wait_and_bleed(pid_t fpid) {
   waitpid(fpid, &status, 0);
   char status_s[INT_STR_LEN];
   safe_snprintf(status_s, INT_STR_LEN, "%d", status);
-  log(INFO, "event", "Process exited", "status", status_s);
+  log(INFO, "message", "Process exited", "status", status_s);
   jail_remove(*jail_id); // Make sure there are no orphans in the jail
   munmap(jail_id, sizeof *jail_id);
   if (ip_s != NULL) execv("/sbin/ifconfig", (char *[]){ "ifconfig", net_if, "-alias", ip_s, 0 });
@@ -116,7 +116,7 @@ void run() {
   char jail_id_s[INT_STR_LEN];
   safe_snprintf(jail_id_s, INT_STR_LEN, "%d", jresult);
   chdir("/");
-  log(INFO, "event", "Process starting", "path", dest, "jid", jail_id_s, "stdout", redir_stdout, "stderr", redir_stderr, "net_if", net_if, "net_ip", ip_s);
+  log(INFO, "message", "Process starting", "path", dest, "jid", jail_id_s, "stdout", redir_stdout, "stderr", redir_stderr, "net_if", net_if, "net_ip", ip_s);
   char *tmpname = malloc(22);
   strcpy(tmpname, "/tmp/ljspawn.XXXXXXXX");
   int scriptfd = mkstemp(tmpname); // tmpname IS REPLACED WITH ACTUAL NAME HERE
