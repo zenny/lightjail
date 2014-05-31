@@ -1,5 +1,7 @@
 CC ?= cc
-CFLAGS += -g -Ofast
+CFLAGS = -pipe
+CFLAGS += -Ofast
+#CFLAGS += -g -O0
 CFLAGS += -Wall -Wextra -Wconversion -Wno-unused-parameter -Wstrict-overflow -Wformat-security -Wformat=2 -Wno-format-nonliteral
 CFLAGS += -fstack-protector-all -fsanitize=bounds
 CFLAGS += -fPIC -fPIE
@@ -15,7 +17,7 @@ install: all
 clean:
 	rm -f ljspawn ljspawn.1 ljspawn.1.html
 
-ljspawn: ljspawn.c
+ljspawn: ljspawn.c logging.c
 	$(CC) $(CFLAGS) -o ljspawn ljspawn.c $(LDFLAGS)
 
 .PHONY: all install clean
