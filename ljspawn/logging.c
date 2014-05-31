@@ -17,6 +17,7 @@ bool log_json = false;
 typedef enum {
   EMERGENCY,
   ALERT,
+  CRITICAL,
   ERROR,
   WARNING,
   NOTICE,
@@ -84,14 +85,19 @@ void llog(FILE* outfile, const loglevel_t level, ...) {
     switch(level) {
       case EMERGENCY:   level_s = "EMERGENCY"; break;
       case ALERT:       level_s = "ALERT"; break;
+      case CRITICAL:    level_s = "CRITICAL"; break;
       case ERROR:       level_s = "ERROR"; break;
       case WARNING:     level_s = "WARNING"; break;
       case NOTICE:      level_s = "NOTICE"; break;
       case INFO:        level_s = "INFO"; break;
       case DEBUG:       level_s = "DEBUG"; break;
     }
-    char time_s[sizeof "2014-14-14T14:14:14Z"];
-    strftime(time_s, sizeof time_s, "%FT%TZ", gmtime(&now));
+    char time_s[sizeof "2014-14-14T14:14:14+04:00"];
+    strftime(time_s, sizeof time_s, "%FT%T%z", localtime(&now));
+    time_s[24] = time_s[23];
+    time_s[23] = time_s[22];
+    time_s[22] = ':';
+    time_s[25] = '\0';
     char* app_color = "";
     char* msg_color = "";
     char* time_color = "";
@@ -105,6 +111,7 @@ void llog(FILE* outfile, const loglevel_t level, ...) {
       switch(level) {
         case EMERGENCY: 
         case ALERT:
+        case CRITICAL:
         case ERROR:    level_color = ANSI_BOLD_RED; break;
         case WARNING:
         case NOTICE:   level_color = ANSI_COLOR_RED; break;
