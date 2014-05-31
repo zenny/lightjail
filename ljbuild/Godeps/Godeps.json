@@ -4,7 +4,7 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/myfreeweb/gosemver",
-			"Rev": "fca2a63fe3cec6d7b6f6d409ec3b84a3a3c3b624"
+			"Rev": "a8afbe57fdafc30fe8f4aa32588efdcd353f663e"
 		}
 	]
 }
