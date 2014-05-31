@@ -9,6 +9,8 @@
 .Op Fl i Ar ip-address
 .Op Fl f Ar network-interface
 .Op Fl n Ar name
+.Op Fl O Ar stdout
+.Op Fl E Ar stderr
 .Op Fl 0
 .Op Fl d Ar directory
 .Op Fl p Ar process
@@ -33,6 +35,10 @@ The network interface on which the IP address of the jail will be set.
 By default, it is `lo0`.
 .It Fl n Ar name
 The hostname and jail name that the jail will have.
+.It Fl O Ar stdout
+The file to redirect the spawned process's stdout to.
+.It Fl E Ar stderr
+The file to redirect the spawned process's stderr to.
 .It Fl 0
 Run the process inside the jail as an unprivileged (nobody) user.
 .It Fl d Ar directory

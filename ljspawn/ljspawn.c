@@ -28,6 +28,8 @@ char *ip_s = NULL;
 struct in_addr ip;
 char *name = DEFAULT_NAME;
 char *proc = "#!/bin/sh\necho 'Hello world'";
+char *redir_stdout = "/dev/stdout";
+char *redir_stderr = "/dev/stderr";
 bool nobody = false;
 pid_t p_fpid;
 
@@ -60,19 +62,21 @@ void handle_sigterm() {
 }
 
 void usage(char *pname) {
-  printf("%s -- spawn a process in a lightweight jail environment\nusage: %s [-i <IP-address>] [-f <network-interface>] [-n <name>] [-0] -d <directory> -p <process>\nsee man %s for more info\n", pname, pname, pname);
+  printf("%s -- spawn a process in a lightweight jail environment\nusage: %s [-i <ip-address>] [-f <network-interface>] [-n <name>] [-O <stdout>] [-E <stderr>] [-0] -d <directory> -p <process>\nsee man %s for more info\n", pname, pname, pname);
 }
 
 void parse_options(int argc, char *argv[]) {
   int c;
-  while ((c = getopt(argc, argv, "d:f:hi:0n:p:?")) != -1) {
+  while ((c = getopt(argc, argv, "d:f:hi:0n:p:O:E:?")) != -1) {
     switch (c) {
-      case 'd': dest   = optarg; break;
-      case 'i': ip_s   = optarg; break;
-      case 'f': net_if = optarg; break;
-      case '0': nobody = true;   break;
-      case 'n': name   = optarg; break;
-      case 'p': proc   = optarg; break;
+      case 'd': dest           = optarg; break;
+      case 'i': ip_s           = optarg; break;
+      case 'f': net_if         = optarg; break;
+      case '0': nobody         = true;   break;
+      case 'n': name           = optarg; break;
+      case 'p': proc           = optarg; break;
+      case 'O': redir_stdout   = optarg; break;
+      case 'E': redir_stderr   = optarg; break;
       case '?':
       case 'h':
       default: usage(argv[0]); exit(1); break;
@@ -117,6 +121,8 @@ void run() {
       execv("/sbin/ifconfig", (char *[]){ "ifconfig", net_if, "alias", ip_s, 0 });
     }
   }
+  freopen(redir_stdout, "w", stdout);
+  freopen(redir_stderr, "w", stderr);
   int jresult = jail(&j);
   if (jresult == -1) die_errno("Could not start jail");
   *jail_id = jresult;
