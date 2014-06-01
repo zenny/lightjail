@@ -53,8 +53,8 @@ void llog(FILE* outfile, const loglevel_t level, ...) {
   time_t now; time(&now);
   char* current;
   int i = 0;
+  if (strcmp(hostname, "localhost") == 0) gethostname(hostname, 256);
   if (log_json) {
-    if (strcmp(hostname, "localhost") == 0) gethostname(hostname, 256);
     fprintf(outfile, "{\"version\":\"1.1\",\"host\":\"ljspawn@%s\",\"timestamp\":%ld,\"level\":%d", hostname, now, level);
     char* prev = malloc(1);
     while ((current = va_arg(vargs, char*)) != NULL) {
@@ -119,7 +119,7 @@ void llog(FILE* outfile, const loglevel_t level, ...) {
         case DEBUG:    level_color = ANSI_COLOR_BLUE; break;
       }
     }
-    fprintf(outfile, "=[%sljspawn%s]=[%s%s%s]=[%s%s%s]=> ", app_color, reset_color, level_color, level_s, reset_color, time_color, time_s, reset_color);
+    fprintf(outfile, "=[%sljspawn@%s%s]=[%s%s%s]=[%s%s%s]=> ", app_color, hostname, reset_color, level_color, level_s, reset_color, time_color, time_s, reset_color);
     while ((current = va_arg(vargs, char*)) != NULL) {
       i++;
       if (i % 2 == 0) {

@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
+	"github.com/myfreeweb/gomaplog"
 	"github.com/myfreeweb/lightjail/util"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -13,18 +13,22 @@ import (
 	"time"
 )
 
+var logger = gomaplog.StdoutLogger(gomaplog.DefaultTemplateFormatter)
+
 var options struct {
 	overrideVersion, ipAddr, ipIface, ramLimitSoft, ramLimitHard string
 }
 
 func main() {
 	defer func() {
-		// panic + log.Fatal through recover() instead of direct log.Fatal allows
+		// panic + log + exit through recover() instead of direct log.Fatal allows
 		// deferred function calls -> no leftover mounts/rctls/tmpdirs after errors!
 		if r := recover(); r != nil {
-			log.Fatalf("Fatal error: %v", r)
+			logger.Error("Fatal error", gomaplog.Extras{"error": r})
+			os.Exit(1)
 		}
 	}()
+	logger.Host = "ljbuild@" + util.Hostname()
 	util.MustHaveExecutables("mount", "umount", "devfs", "rctl", "ljspawn", "route", "uname", "cp")
 	parseOptions()
 	args := flag.Args()
@@ -65,7 +69,7 @@ func runJailfile(path string) {
 		panic(err)
 	}
 	defer syscall.Rmdir(mountPoint)
-	log.Printf("Building %s version %s\n", script.Name, script.Version)
+	logger.Info("Build started", gomaplog.Extras{"name": script.Name, "version": script.Version})
 	if script.CopyDst != "" {
 		if err := exec.Command("cp", "-R", filepath.Dir(path)+"/", filepath.Join(script.GetOverlayPath(), script.CopyDst)).Run(); err != nil {
 			panic(err)
@@ -91,15 +95,15 @@ func runJailfile(path string) {
 	exitCode := <-runner.Run(ljspawnCmd)
 	script.Overlay.Save(filepath.Join(script.GetOverlayPath(), "overlay.json"))
 	time.Sleep(300 * time.Millisecond) // Wait for jail removal, just in case
-	log.Printf("Finished with code %d\n", exitCode)
+	logger.Info("Build finished", gomaplog.Extras{"exit_code": exitCode})
 }
 
 func handleInterrupts(runner *util.Runner) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
-		<-interrupt
-		log.Print("Interrupted by a signal, stopping.\n")
+		i := <-interrupt
+		logger.Notice("Interrupted by a signal", gomaplog.Extras{"signal": i})
 		runner.Cleanup()
 	}()
 }

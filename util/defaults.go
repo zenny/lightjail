@@ -46,3 +46,11 @@ func RootDir() string {
 	}
 	return rootDir
 }
+
+func Hostname() string {
+	host, err := os.Hostname()
+	if err != nil {
+		return "localhost"
+	}
+	return host
+}

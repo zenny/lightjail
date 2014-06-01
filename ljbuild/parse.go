@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/myfreeweb/gomaplog"
 	"github.com/myfreeweb/lightjail/util"
-	"log"
 	"regexp"
 	"strings"
 )
@@ -45,12 +45,12 @@ func parseJailfile(src, overrideVersion string) *Script {
 
 	if script.WorldVersion == "" {
 		script.WorldVersion = util.DefaultWorldVersion()
-		log.Printf("The Jailfile does not contain a 'world' directive, using default: %s", script.WorldVersion)
+		logger.Info("The Jailfile does not contain a 'world' directive, using default", gomaplog.Extras{"world": script.WorldVersion, "name": script.Name})
 	}
 
 	if script.Version == "" && overrideVersion == "" {
 		script.Version = util.RandomVersion()
-		log.Printf("The Jailfile does not contain a 'version' directive, using random: %s", script.Version)
+		logger.Notice("The Jailfile does not contain a 'version' directive, using random", gomaplog.Extras{"version": script.Version, "name": script.Name})
 	}
 
 	if overrideVersion != "" {
