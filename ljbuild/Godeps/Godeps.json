@@ -3,8 +3,12 @@
 	"GoVersion": "go1.2.1",
 	"Deps": [
 		{
+			"ImportPath": "github.com/myfreeweb/gomaplog",
+			"Rev": "d30f3b09127b94534a8b5cc326b63703ad939081"
+		},
+		{
 			"ImportPath": "github.com/myfreeweb/gosemver",
-			"Rev": "a8afbe57fdafc30fe8f4aa32588efdcd353f663e"
+			"Rev": "1c558e8fd73286267e63ac845f69ae7b5a2b1153"
 		}
 	]
 }
