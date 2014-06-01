@@ -48,7 +48,8 @@ char* escape_quotes(char* str) {
 
 char hostname[256] = "localhost";
 
-void llog(FILE* outfile, const loglevel_t level, ...) {
+void llog(const loglevel_t level, ...) {
+  FILE* outfile = stdout;
   va_list vargs; va_start(vargs, level);
   time_t now; time(&now);
   char* current;
@@ -133,7 +134,7 @@ void llog(FILE* outfile, const loglevel_t level, ...) {
   va_end(vargs);
 }
 
-#define die(...) if (1) { llog(stderr, ERROR, __VA_ARGS__, NULL); exit(1); }
-#define die_errno(...) if (1) { llog(stderr, ERROR, __VA_ARGS__, "errno", errno, "strerror", strerror(errno), NULL); exit(errno); }
-#define log(level, ...) llog(stdout, (level), __VA_ARGS__, NULL)
+#define die(...) if (1) { llog(ERROR, __VA_ARGS__, NULL); exit(1); }
+#define die_errno(...) if (1) { llog(ERROR, __VA_ARGS__, "errno", errno, "strerror", strerror(errno), NULL); exit(errno); }
+#define log(level, ...) llog((level), __VA_ARGS__, NULL)
 #endif
