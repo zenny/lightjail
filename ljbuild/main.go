@@ -17,6 +17,7 @@ var logger = gomaplog.StdoutLogger(gomaplog.DefaultTemplateFormatter)
 
 var options struct {
 	overrideVersion, ipAddr, ipIface, ramLimitSoft, ramLimitHard string
+	logJson                                                      bool
 }
 
 func main() {
@@ -28,9 +29,9 @@ func main() {
 			os.Exit(1)
 		}
 	}()
+	parseOptions()
 	logger.Host = "ljbuild@" + util.Hostname()
 	util.MustHaveExecutables("mount", "umount", "devfs", "rctl", "ljspawn", "route", "uname", "cp")
-	parseOptions()
 	args := flag.Args()
 	var jfPath string
 	if len(args) < 1 {
@@ -51,7 +52,11 @@ func parseOptions() {
 	flag.StringVar(&options.ipIface, "f", "default", "network interface for the build jail")
 	flag.StringVar(&options.ramLimitSoft, "r", "500m", "soft RAM limit")
 	flag.StringVar(&options.ramLimitHard, "R", "512m", "hard RAM limit")
+	flag.BoolVar(&options.logJson, "j", false, "log in JSON (GELF 1.1) format")
 	flag.Parse()
+	if options.logJson {
+		logger = gomaplog.StdoutLogger(gomaplog.DefaultJSONFormatter)
+	}
 	if options.ipIface == "default" {
 		options.ipIface = util.DefaultIpIface()
 	}
@@ -87,7 +92,11 @@ func runJailfile(path string) {
 	rctl := new(util.Rctl)
 	rctl.LimitJailRam(jailName, options.ramLimitSoft, options.ramLimitHard)
 	defer rctl.Cleanup()
-	ljspawnCmd := exec.Command("ljspawn", "-n", jailName, "-i", options.ipAddr, "-f", options.ipIface, "-d", mountPoint, "-p", script.Buildscript)
+	jsonOption := ""
+	if options.logJson {
+		jsonOption = "-j"
+	}
+	ljspawnCmd := exec.Command("ljspawn", "-n", jailName, "-i", options.ipAddr, "-f", options.ipIface, "-d", mountPoint, "-p", script.Buildscript, jsonOption)
 	ljspawnCmd.Stdout = os.Stdout
 	ljspawnCmd.Stderr = os.Stdout
 	runner := new(util.Runner)
@@ -95,7 +104,7 @@ func runJailfile(path string) {
 	exitCode := <-runner.Run(ljspawnCmd)
 	script.Overlay.Save(filepath.Join(script.GetOverlayPath(), "overlay.json"))
 	time.Sleep(300 * time.Millisecond) // Wait for jail removal, just in case
-	logger.Info("Build finished", gomaplog.Extras{"exit_code": exitCode})
+	logger.Info("Build finished", gomaplog.Extras{"status": exitCode})
 }
 
 func handleInterrupts(runner *util.Runner) {
