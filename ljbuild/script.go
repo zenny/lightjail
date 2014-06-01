@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/myfreeweb/lightjail/util"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,23 +19,23 @@ type Overlay struct {
 func (overlay *Overlay) Save(path string) {
 	bytes, err := json.Marshal(overlay)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	err = ioutil.WriteFile(path, bytes, 0444)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 }
 
 func ReadOverlay(path string) Overlay {
 	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	var overlay Overlay
 	err = json.Unmarshal(bytes, &overlay)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	return overlay
 }
@@ -73,7 +72,7 @@ func (script *Script) GetFromPaths() []string {
 	return script.Overlay.GetFromPaths(script.RootDir)
 }
 
-func (script *Script) Validate() {
+func (script *Script) MustValidate() {
 	errors := []string{}
 
 	if script.Name == "" {
@@ -125,6 +124,6 @@ func (script *Script) Validate() {
 	}
 
 	if len(errors) > 0 {
-		log.Fatalf("The Jailfile is not valid because of the following reasons:\n- %s\n", strings.Join(errors, "\n- "))
+		panic(fmt.Sprintf("The Jailfile is not valid because of the following reasons:\n- %s\n", strings.Join(errors, "\n- ")))
 	}
 }

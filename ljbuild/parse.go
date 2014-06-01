@@ -10,7 +10,7 @@ import (
 func parseJailfile(src, overrideVersion string) *Script {
 	fileParts := strings.SplitN(src, "\n#!", 2)
 	if len(fileParts) != 2 {
-		log.Fatal("The Jailfile does not contain '#!'")
+		panic("The Jailfile does not contain '#!'")
 	}
 	script := new(Script)
 	script.Buildscript = "#!" + fileParts[1]

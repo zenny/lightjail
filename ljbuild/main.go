@@ -18,7 +18,14 @@ var options struct {
 }
 
 func main() {
-	util.CheckExecutables("mount", "umount", "devfs", "rctl", "ljspawn", "route", "uname", "cp")
+	defer func() {
+		// panic + log.Fatal through recover() instead of direct log.Fatal allows
+		// deferred function calls -> no leftover mounts/rctls/tmpdirs after errors!
+		if r := recover(); r != nil {
+			log.Fatalf("Fatal error: %v", r)
+		}
+	}()
+	util.MustHaveExecutables("mount", "umount", "devfs", "rctl", "ljspawn", "route", "uname", "cp")
 	parseOptions()
 	args := flag.Args()
 	var jfPath string
@@ -29,7 +36,7 @@ func main() {
 	}
 	jfPath, err := filepath.Abs(jfPath)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	runJailfile(jfPath)
 }
@@ -47,28 +54,21 @@ func parseOptions() {
 }
 
 func runJailfile(path string) {
-	defer func() {
-		// panic + log.Fatal through recover() instead of direct log.Fatal allows
-		// deferred function calls -> no leftover mounts/rctls/tmpdirs after errors!
-		if r := recover(); r != nil {
-			log.Fatalf("Fatal error: %v", r)
-		}
-	}()
 	script := parseJailfile(readFile(path), options.overrideVersion)
 	script.RootDir = util.RootDir()
-	script.Validate()
+	script.MustValidate()
 	if err := os.MkdirAll(script.GetOverlayPath(), 0774); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	mountPoint, err := ioutil.TempDir("", "ljbuild-")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	defer syscall.Rmdir(mountPoint)
 	log.Printf("Building %s version %s\n", script.Name, script.Version)
 	if script.CopyDst != "" {
 		if err := exec.Command("cp", "-R", filepath.Dir(path)+"/", filepath.Join(script.GetOverlayPath(), script.CopyDst)).Run(); err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}
 	mounter := new(util.Mounter)
@@ -107,7 +107,7 @@ func handleInterrupts(runner *util.Runner) {
 func readFile(path string) string {
 	fileSrc, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	return string(fileSrc)
 }
