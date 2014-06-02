@@ -4,9 +4,7 @@ import (
 	"flag"
 	"github.com/myfreeweb/gomaplog"
 	"github.com/myfreeweb/lightjail/util"
-	"io/ioutil"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"syscall"
@@ -21,29 +19,23 @@ var options struct {
 }
 
 func main() {
-	defer func() {
-		// panic + log + exit through recover() instead of direct log.Fatal allows
-		// deferred function calls -> no leftover mounts/rctls/tmpdirs after errors!
-		if r := recover(); r != nil {
-			logger.Error("Fatal error", gomaplog.Extras{"error": r})
-			os.Exit(1)
-		}
-	}()
 	parseOptions()
+	defer logger.HandlePanic()
 	logger.Host = "ljbuild@" + util.Hostname()
 	util.MustHaveExecutables("mount", "umount", "devfs", "rctl", "ljspawn", "route", "uname", "cp")
-	args := flag.Args()
-	var jfPath string
-	if len(args) < 1 {
-		jfPath = "Jailfile"
-	} else {
+	runJailfile(jailfilePath(flag.Args()))
+}
+
+func jailfilePath(args []string) string {
+	jfPath := "Jailfile"
+	if len(args) >= 1 {
 		jfPath = args[0]
 	}
 	jfPath, err := filepath.Abs(jfPath)
 	if err != nil {
 		panic(err)
 	}
-	runJailfile(jfPath)
+	return jfPath
 }
 
 func parseOptions() {
@@ -63,46 +55,28 @@ func parseOptions() {
 }
 
 func runJailfile(path string) {
-	script := parseJailfile(readFile(path), options.overrideVersion)
-	script.RootDir = util.RootDir()
-	script.MustValidate()
-	if err := os.MkdirAll(script.GetOverlayPath(), 0774); err != nil {
-		panic(err)
+	tmpdir := util.MustTempDir("ljbuild-")
+	jail := Buildjail{
+		Script:     readAndParseJailfile(path, options.overrideVersion),
+		MountPoint: tmpdir,
+		Name:       filepath.Base(tmpdir),
+		RootDir:    util.RootDir(),
 	}
-	mountPoint, err := ioutil.TempDir("", "ljbuild-")
-	if err != nil {
-		panic(err)
-	}
-	defer syscall.Rmdir(mountPoint)
-	logger.Info("Build started", gomaplog.Extras{"name": script.Name, "version": script.Version})
-	if script.CopyDst != "" {
-		if err := exec.Command("cp", "-R", filepath.Dir(path)+"/", filepath.Join(script.GetOverlayPath(), script.CopyDst)).Run(); err != nil {
-			panic(err)
-		}
-	}
+	jail.MustValidate()
+	jail.MustMakeOverlayDir()
+	defer syscall.Rmdir(jail.MountPoint)
+	logger.Info("Build started", gomaplog.Extras{"name": jail.Script.Name, "version": jail.Script.Version})
+	jail.CopyFiles()
 	mounter := new(util.Mounter)
 	defer mounter.Cleanup()
-	mounter.Mount("nullfs", "ro", script.GetWorldDir(), mountPoint)
-	for _, path := range script.GetFromPaths() {
-		mounter.Mount("unionfs", "ro", path, mountPoint)
-	}
-	mounter.Mount("unionfs", "rw", script.GetOverlayPath(), mountPoint)
-	mounter.MountDev(filepath.Join(mountPoint, "dev"))
-	jailName := filepath.Base(mountPoint)
+	jail.Mount(mounter)
 	rctl := new(util.Rctl)
-	rctl.LimitJailRam(jailName, options.ramLimitSoft, options.ramLimitHard)
 	defer rctl.Cleanup()
-	jsonOption := ""
-	if options.logJson {
-		jsonOption = "-j"
-	}
-	ljspawnCmd := exec.Command("ljspawn", "-n", jailName, "-i", options.ipAddr, "-f", options.ipIface, "-d", mountPoint, "-p", script.Buildscript, jsonOption)
-	ljspawnCmd.Stdout = os.Stdout
-	ljspawnCmd.Stderr = os.Stdout
+	rctl.LimitJailRam(jail.Name, options.ramLimitSoft, options.ramLimitHard)
 	runner := new(util.Runner)
 	handleInterrupts(runner)
-	exitCode := <-runner.Run(ljspawnCmd)
-	script.Overlay.Save(filepath.Join(script.GetOverlayPath(), "overlay.json"))
+	exitCode := <-runner.Run(jail.Cmd())
+	jail.Script.Overlay.Save(filepath.Join(jail.GetOverlayPath(), "overlay.json"))
 	time.Sleep(300 * time.Millisecond) // Wait for jail removal, just in case
 	logger.Info("Build finished", gomaplog.Extras{"status": exitCode})
 }
@@ -115,12 +89,4 @@ func handleInterrupts(runner *util.Runner) {
 		logger.Notice("Interrupted by a signal", gomaplog.Extras{"signal": i})
 		runner.Cleanup()
 	}()
-}
-
-func readFile(path string) string {
-	fileSrc, err := ioutil.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
-	return string(fileSrc)
 }

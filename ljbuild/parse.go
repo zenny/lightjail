@@ -59,3 +59,9 @@ func parseJailfile(src, overrideVersion string) *Script {
 
 	return script
 }
+
+func readAndParseJailfile(path, overrideVersion string) *Script {
+	script := parseJailfile(util.MustReadFileStr(path), overrideVersion)
+	script.ScriptPath = path
+	return script
+}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/myfreeweb/lightjail/util"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -56,20 +55,8 @@ type Script struct {
 	Overlay
 	WorldVersion string
 	Buildscript  string
-	RootDir      string
 	CopyDst      string
-}
-
-func (script *Script) GetOverlayPath() string {
-	return filepath.Join(script.RootDir, script.Name, script.Version)
-}
-
-func (script *Script) GetWorldDir() string {
-	return filepath.Join(script.RootDir, "worlds", script.WorldVersion)
-}
-
-func (script *Script) GetFromPaths() []string {
-	return script.Overlay.GetFromPaths(script.RootDir)
+	ScriptPath   string
 }
 
 func (script *Script) MustValidate() {
@@ -109,18 +96,6 @@ func (script *Script) MustValidate() {
 
 	if strings.Contains(script.WorldVersion, "..") {
 		errors = append(errors, "World must not contain '..'")
-	}
-
-	if _, err := os.Stat(script.GetWorldDir()); err != nil {
-		if os.IsNotExist(err) {
-			errors = append(errors, fmt.Sprintf("World does not exist: %s", script.WorldVersion))
-		} else {
-			errors = append(errors, fmt.Sprintf("Cannot stat world: %s -- probably the server is not set up correctly", script.WorldVersion))
-		}
-	}
-
-	if _, err := os.Stat(script.GetOverlayPath()); err == nil {
-		errors = append(errors, fmt.Sprintf("Directory already exists: %s", script.GetOverlayPath()))
 	}
 
 	if len(errors) > 0 {
