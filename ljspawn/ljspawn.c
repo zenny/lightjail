@@ -7,6 +7,7 @@
 #include <sys/mman.h>
 #include <sys/file.h>
 #include <sys/stat.h>
+#include <sys/resource.h>
 #include <arpa/inet.h>
 #include <pwd.h>
 #include <signal.h>
@@ -32,6 +33,7 @@ char *name = DEFAULT_NAME;
 char *proc = "#!/bin/sh\necho 'Hello world'";
 char *redir_stdout = "/dev/stdout";
 char *redir_stderr = "/dev/stderr";
+long long memory_limit_mb = 256;
 bool nobody = false;
 pid_t p_fpid;
 
@@ -49,17 +51,18 @@ void usage(char *pname) {
 
 void parse_options(int argc, char *argv[]) {
   int c;
-  while ((c = getopt(argc, argv, "d:f:hi:j0n:p:O:E:?")) != -1) { // lol "hi j0n"
+  while ((c = getopt(argc, argv, "0d:f:hi:jm:n:p:O:E:?")) != -1) {
     switch (c) {
-      case 'd': dest           = optarg; break;
-      case 'i': ip_s           = optarg; break;
-      case 'j': log_json       = true; break;
-      case 'f': net_if         = optarg; break;
-      case '0': nobody         = true;   break;
-      case 'n': name           = optarg; break;
-      case 'p': proc           = optarg; break;
-      case 'O': redir_stdout   = optarg; break;
-      case 'E': redir_stderr   = optarg; break;
+      case 'd': dest              = optarg; break;
+      case 'i': ip_s              = optarg; break;
+      case 'j': log_json          = true; break;
+      case 'm': memory_limit_mb   = strtoll(optarg, 0, 10); break;
+      case 'f': net_if            = optarg; break;
+      case '0': nobody            = true;   break;
+      case 'n': name              = optarg; break;
+      case 'p': proc              = optarg; break;
+      case 'O': redir_stdout      = optarg; break;
+      case 'E': redir_stderr      = optarg; break;
       case '?':
       case 'h':
       default: usage(argv[0]); exit(1); break;
@@ -115,20 +118,24 @@ void run() {
   *jail_id = jresult;
   char jail_id_s[INT_STR_LEN];
   safe_snprintf(jail_id_s, INT_STR_LEN, "%d", jresult);
-  chdir("/");
   log(INFO, "message", "Process starting", "path", dest, "jid", jail_id_s, "stdout", redir_stdout, "stderr", redir_stderr, "net_if", net_if, "net_ip", ip_s);
-  char *tmpname = malloc(22);
+  if (chdir("/") != 0) die_errno("message", "Could not chdir to jail");
+  struct rlimit ramlimit;
+  ramlimit.rlim_cur = ramlimit.rlim_max = 1024*1024*memory_limit_mb;
+  if (setrlimit(RLIMIT_AS, &ramlimit) != 0) die_errno("message", "Could not limit memory");
+  char *tmpname = malloc(sizeof "/tmp/ljspawn.XXXXXXXX");
   strcpy(tmpname, "/tmp/ljspawn.XXXXXXXX");
   int scriptfd = mkstemp(tmpname); // tmpname IS REPLACED WITH ACTUAL NAME HERE
   if (scriptfd == -1) die_errno("message", "Could not open temp file");
   write(scriptfd, proc, strlen(proc));
-  if (fchmod(scriptfd, (unsigned short) strtol("0755", 0, 8)) == -1) die_errno("message", "Could not chmod temp file");
+  if (fchmod(scriptfd, (unsigned short) strtol("0755", 0, 8)) != 0) die_errno("message", "Could not chmod temp file");
   close(scriptfd);
   if (nobody) {
     system("pw useradd -n nobody -d /nonexistent -s /usr/sbin/nologin 2> /dev/null");
     struct passwd* pw = getpwnam("nobody");
-    setgroups(1, &pw->pw_gid);
-    setuid(pw->pw_uid);
+    if (setgroups(1, &pw->pw_gid) != 0) die_errno("message", "Could not drop groups privileges");
+    if (setgid(pw->pw_gid) != 0) die_errno("message", "Could not drop group privileges");
+    if (setuid(pw->pw_uid) != 0) die_errno("message", "Could not drop user privileges");
   }
   if (execve(tmpname, (char *[]){ tmpname, 0 },
       (char *[]){ "PATH=/usr/local/bin:/usr/local/sbin:/usr/games:/usr/bin:/usr/sbin:/bin:/sbin",
