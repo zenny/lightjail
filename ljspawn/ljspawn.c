@@ -22,6 +22,7 @@
 
 #define DEFAULT_NAME "lj"
 #define DEFAULT_IFACE "lo0"
+#define INT_STR_LEN ((CHAR_BIT * sizeof(int) - 1) / 3 + 2)
 #define safe_snprintf(dst, len, ...) if ((unsigned long)(snprintf((dst), (len), __VA_ARGS__)) >= (len)) die("message", "Buffer overflow")
 
 char *dest = NULL;
@@ -33,7 +34,8 @@ char *name = DEFAULT_NAME;
 char *proc = "#!/bin/sh\necho 'Hello world'";
 char *redir_stdout = "/dev/stdout";
 char *redir_stderr = "/dev/stderr";
-long long memory_limit_mb = 256;
+int memory_limit_mb = 256;
+char memory_limit_mb_s[INT_STR_LEN];
 bool nobody = false;
 pid_t p_fpid;
 
@@ -56,7 +58,7 @@ void parse_options(int argc, char *argv[]) {
       case 'd': dest              = optarg; break;
       case 'i': ip_s              = optarg; break;
       case 'j': log_json          = true; break;
-      case 'm': memory_limit_mb   = strtoll(optarg, 0, 10); break;
+      case 'm': memory_limit_mb   = (int)strtol(optarg, 0, 10); break;
       case 'f': net_if            = optarg; break;
       case '0': nobody            = true;   break;
       case 'n': name              = optarg; break;
@@ -69,15 +71,14 @@ void parse_options(int argc, char *argv[]) {
     }
   }
   if (dest == NULL) { usage(argv[0]); die("message", "Cannot run without directory (-d)"); }
-  if (memory_limit_mb == 0) die_errno("message", "Could not read memory limit (-m)");
   if (ip_s == NULL) log(WARNING, "message", "Running without an IP address (-i)");
   if (ip_s != NULL && inet_pton(AF_INET, ip_s, &ip) <= 0) die("message", "Cannot parse IPv4 address", "ip", ip_s);
   if (name == default_name) log(WARNING, "message", "Running with default name (-n)");
+  if (memory_limit_mb == 0) die_errno("message", "Could not read memory limit (-m)");
+  safe_snprintf(memory_limit_mb_s, INT_STR_LEN, "%d", memory_limit_mb);
 }
 
 static int *jail_id;
-
-#define INT_STR_LEN ((CHAR_BIT * sizeof(int) - 1) / 3 + 2)
 
 void wait_and_bleed(pid_t fpid) {
   signal(SIGQUIT, handle_sigint);
@@ -119,7 +120,7 @@ void run() {
   *jail_id = jresult;
   char jail_id_s[INT_STR_LEN];
   safe_snprintf(jail_id_s, INT_STR_LEN, "%d", jresult);
-  log(INFO, "message", "Process starting", "path", dest, "jid", jail_id_s, "stdout", redir_stdout, "stderr", redir_stderr, "net_if", net_if, "net_ip", ip_s);
+  log(INFO, "message", "Process starting", "path", dest, "jid", jail_id_s, "stdout", redir_stdout, "stderr", redir_stderr, "net_if", net_if, "net_ip", ip_s, "mem_limit", memory_limit_mb_s);
   if (chdir("/") != 0) die_errno("message", "Could not chdir to jail");
   struct rlimit ramlimit;
   ramlimit.rlim_cur = ramlimit.rlim_max = 1024*1024*memory_limit_mb;
