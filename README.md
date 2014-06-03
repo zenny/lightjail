@@ -68,8 +68,7 @@ Do it once, archive it with `cpio`, compress with `xz`, copy to all servers (*wi
 
 ## Requirements
 
-1. You must rebuild your kernel with RCTL ([14.13.2. Enabling and Configuring Resource Limits](http://www.freebsd.org/doc/handbook/security-resourcelimits.html#idp76631728)), otherwise limiting containers' RAM won't work
-2. You must set up devfs rules:
+1. You must set up devfs rules:
   - `sudo cp /etc/defaults/devfs.rules /etc/devfs.rules`
   - `sudo sysrc devfs_load_rulesets="YES"`
   - `sudo service devfs restart`

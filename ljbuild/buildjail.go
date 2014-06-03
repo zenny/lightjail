@@ -6,10 +6,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 )
 
 type Buildjail struct {
 	Script     *Script
+	MemLimit   int
 	MountPoint string
 	RootDir    string
 	Name       string
@@ -59,7 +61,7 @@ func (jail *Buildjail) Cmd() *exec.Cmd {
 	if options.logJson {
 		jsonOption = "-j"
 	}
-	ljspawnCmd := exec.Command("ljspawn", "-n", jail.Name, "-i", options.ipAddr, "-f", options.ipIface, "-d", jail.MountPoint, "-p", jail.Script.Buildscript, jsonOption)
+	ljspawnCmd := exec.Command("ljspawn", "-n", jail.Name, "-m", strconv.Itoa(jail.MemLimit), "-i", options.ipAddr, "-f", options.ipIface, "-d", jail.MountPoint, "-p", jail.Script.Buildscript, jsonOption)
 	ljspawnCmd.Stdout = os.Stdout
 	ljspawnCmd.Stderr = os.Stdout
 	return ljspawnCmd

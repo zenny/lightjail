@@ -14,8 +14,9 @@ import (
 var logger = gomaplog.StdoutLogger(gomaplog.DefaultTemplateFormatter)
 
 var options struct {
-	overrideVersion, ipAddr, ipIface, ramLimitSoft, ramLimitHard string
-	logJson                                                      bool
+	overrideVersion, ipAddr, ipIface string
+	memLimit                         int
+	logJson                          bool
 }
 
 func main() {
@@ -42,8 +43,7 @@ func parseOptions() {
 	flag.StringVar(&options.overrideVersion, "v", "", "Override version")
 	flag.StringVar(&options.ipAddr, "i", "192.168.1.240", "IPv4 address of the build jail")
 	flag.StringVar(&options.ipIface, "f", "default", "network interface for the build jail")
-	flag.StringVar(&options.ramLimitSoft, "r", "500m", "soft RAM limit")
-	flag.StringVar(&options.ramLimitHard, "R", "512m", "hard RAM limit")
+	flag.IntVar(&options.memLimit, "m", 256, "virtual memory limit in megabytes")
 	flag.BoolVar(&options.logJson, "j", false, "log in JSON (GELF 1.1) format")
 	flag.Parse()
 	if options.logJson {
@@ -60,6 +60,7 @@ func runJailfile(path string) {
 		Script:     readAndParseJailfile(path, options.overrideVersion),
 		MountPoint: tmpdir,
 		Name:       filepath.Base(tmpdir),
+		MemLimit:   options.memLimit,
 		RootDir:    util.RootDir(),
 	}
 	jail.MustValidate()
@@ -70,9 +71,6 @@ func runJailfile(path string) {
 	mounter := new(util.Mounter)
 	defer mounter.Cleanup()
 	jail.Mount(mounter)
-	rctl := new(util.Rctl)
-	defer rctl.Cleanup()
-	rctl.LimitJailRam(jail.Name, options.ramLimitSoft, options.ramLimitHard)
 	runner := new(util.Runner)
 	handleInterrupts(runner)
 	exitCode := <-runner.Run(jail.Cmd())

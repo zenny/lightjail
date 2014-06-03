@@ -27,7 +27,7 @@ func (overlay *Overlay) Save(path string) {
 func ReadOverlay(path string) Overlay {
 	bytes := util.MustReadFile(path)
 	var overlay Overlay
-	err = json.Unmarshal(bytes, &overlay)
+	err := json.Unmarshal(bytes, &overlay)
 	if err != nil {
 		panic(err)
 	}
