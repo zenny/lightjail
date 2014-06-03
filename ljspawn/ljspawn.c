@@ -69,6 +69,7 @@ void parse_options(int argc, char *argv[]) {
     }
   }
   if (dest == NULL) { usage(argv[0]); die("message", "Cannot run without directory (-d)"); }
+  if (memory_limit_mb == 0) die_errno("message", "Could not read memory limit (-m)");
   if (ip_s == NULL) log(WARNING, "message", "Running without an IP address (-i)");
   if (ip_s != NULL && inet_pton(AF_INET, ip_s, &ip) <= 0) die("message", "Cannot parse IPv4 address", "ip", ip_s);
   if (name == default_name) log(WARNING, "message", "Running with default name (-n)");
