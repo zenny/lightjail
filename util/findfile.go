@@ -1,8 +1,9 @@
 package util
 
 import (
-	"github.com/myfreeweb/gosemver"
 	"io/ioutil"
+
+        "github.com/myfreeweb/gosemver"
 )
 
 func FindMaxVersionFile(dir, constraint string) string {

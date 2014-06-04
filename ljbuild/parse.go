@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/myfreeweb/gomaplog"
-	"github.com/myfreeweb/lightjail/util"
 	"regexp"
 	"strings"
+
+        "github.com/myfreeweb/gomaplog"
+        "github.com/myfreeweb/lightjail/util"
 )
 
 func parseJailfile(src, overrideVersion string) *Script {

@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/myfreeweb/lightjail/util"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
+
+        "github.com/myfreeweb/lightjail/util"
 )
 
 type Buildjail struct {

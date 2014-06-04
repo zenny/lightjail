@@ -2,13 +2,14 @@ package main
 
 import (
 	"flag"
-	"github.com/myfreeweb/gomaplog"
-	"github.com/myfreeweb/lightjail/util"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
 	"time"
+
+        "github.com/myfreeweb/gomaplog"
+        "github.com/myfreeweb/lightjail/util"
 )
 
 var logger = gomaplog.StdoutLogger(gomaplog.DefaultTemplateFormatter)
