@@ -23,7 +23,7 @@ func main() {
 	parseOptions()
 	defer logger.HandlePanic()
 	logger.Host = "ljbuild@" + util.Hostname()
-	util.MustHaveExecutables("mount", "umount", "devfs", "rctl", "ljspawn", "route", "uname", "cp")
+	util.MustHaveExecutables("mount", "umount", "devfs", "ljspawn", "route", "uname", "cp")
 	runJailfile(jailfilePath(flag.Args()))
 }
 

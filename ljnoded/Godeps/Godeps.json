@@ -1,0 +1,10 @@
+{
+	"ImportPath": "github.com/myfreeweb/lightjail/ljnoded",
+	"GoVersion": "go1.2.1",
+	"Deps": [
+		{
+			"ImportPath": "github.com/armon/consul-kv",
+			"Rev": "d9bed0798395bbc5b77990c38e6c4ba542576a67"
+		}
+	]
+}
