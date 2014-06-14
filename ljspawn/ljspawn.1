@@ -37,6 +37,7 @@ The network interface on which the IP address of the jail will be set.
 By default, it is `lo0`.
 .It Fl n Ar name
 The hostname and jail name that the jail will have.
+Periods (.) will be replaced with underscores (_) for the jail name, but not the hostname.
 .It Fl m Ar mem-limit
 The maximum amount of virtual memory in megabytes the spawned process will be allowed to allocate.
 By default, it is 256.

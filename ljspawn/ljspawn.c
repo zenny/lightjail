@@ -100,7 +100,9 @@ void run() {
   j.version = JAIL_API_VERSION;
   j.path = dest;
   j.hostname = name;
-  j.jailname = name;
+  char *jname = malloc(sizeof(name));
+  for (unsigned long i = 0; i < sizeof(name); i++) if (name[i] == '.') jname[i] = '_'; else jname[i] = name[i];
+  j.jailname = jname; // Can't contain periods, unlike hostname, which often should
   j.ip4s = 0;
   j.ip6s = 0;
   if (ip_s != NULL) {
