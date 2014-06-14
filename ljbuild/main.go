@@ -73,7 +73,7 @@ func runJailfile(path string) {
 	jail.Mount(mounter)
 	runner := new(util.Runner)
 	handleInterrupts(runner)
-	exitCode := <-runner.Run(jail.Cmd())
+	exitCode := <-runner.Run(jail.Cmd(), "build")
 	jail.Script.Overlay.Save(filepath.Join(jail.GetOverlayPath(), "overlay.json"))
 	time.Sleep(300 * time.Millisecond) // Wait for jail removal, just in case
 	logger.Info("Build finished", gomaplog.Extras{"status": exitCode})

@@ -29,6 +29,14 @@ func (mounter *Mounter) MountDev(to string) {
 
 func (mounter *Mounter) Unmount(from string) {
 	mounter.runMount(exec.Command("umount", from))
+	var idx int
+	for i := len(mounter.Points) - 1; i >= 0; i-- {
+		if mounter.Points[i] == from {
+			idx = i
+			break
+		}
+	}
+	mounter.Points = append(mounter.Points[:idx], mounter.Points[idx+1:]...)
 }
 
 func (mounter *Mounter) Cleanup() {

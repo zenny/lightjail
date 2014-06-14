@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	consulkv "github.com/armon/consul-kv"
 	"github.com/myfreeweb/gomaplog"
@@ -16,30 +17,18 @@ var options struct {
 var logger = gomaplog.StdoutLogger(gomaplog.DefaultTemplateFormatter)
 var kvClient *consulkv.Client
 
-type Process struct {
-	S string
-}
-
-var processes map[string]*Process
-
-func (process *Process) Start() {
-	logger.Info("Starting process", gomaplog.Extras{"S": process.S})
-}
-func (process *Process) Stop() {
-	logger.Info("Stopping process", gomaplog.Extras{"S": process.S})
-}
-
 func main() {
 	util.MustHaveExecutables("mount", "umount", "devfs", "ljspawn", "route", "uname")
 	parseOptions()
-	defer logger.HandlePanic()
+	// defer logger.HandlePanic()
 	logger.Host = "ljnoded@" + util.Hostname()
 	kvConf := consulkv.DefaultConfig()
 	kvConf.Address = options.consulAddr
 	kvClient, _ = consulkv.NewClient(kvConf)
 	logger.Info("Node started", gomaplog.Extras{"consul": options.consulAddr})
-	processes = make(map[string]*Process)
-	loop()
+	procNode := NewProcNode()
+	procNode.StartHandlingInterrupts()
+	loop(procNode)
 }
 
 func parseOptions() {
@@ -55,45 +44,49 @@ func parseOptions() {
 	}
 }
 
-func loop() {
-	kvNodePath := path.Join("lj/nodes", util.Hostname()+"/")
+func loop(node *ProcNode) {
+	kvNodePath := path.Join("lj/nodes", util.Hostname(), "run")
 	meta, list, err := kvClient.List(kvNodePath)
 	if err != nil {
+		logger.Error("Error contacting Consul", gomaplog.Extras{"error": err})
 		panic(err)
 	}
-	handleKV(list)
+	handleKV(list, node)
 	for {
 		meta, list, err = kvClient.WatchList(kvNodePath, meta.ModifyIndex)
 		if err != nil {
 			logger.Error("Error contacting Consul", gomaplog.Extras{"error": err})
 			// sleep ?exponentially?
 		}
-		handleKV(list)
+		handleKV(list, node)
 	}
 }
 
-func handleKV(pairs consulkv.KVPairs) {
-	processesToKill := make(map[string]bool)
-	for k, _ := range processes {
-		processesToKill[k] = true
-	}
+func handleKV(pairs consulkv.KVPairs, node *ProcNode) {
+	newProcesses := make(map[string]*Process)
 	for _, v := range pairs {
-		if _, ok := processes[v.Key]; ok {
-			processesToKill[v.Key] = false
-			newProc := Process{S: string(v.Value)}
-			newProc.Start()
-			processes[v.Key].Stop()
-			processes[v.Key] = &newProc
+		var proc Process
+		err := json.Unmarshal(v.Value, &proc)
+		if err != nil {
+			logger.Warning("Invalid JSON found, ignoring", gomaplog.Extras{"key": v.Key, "consul": options.consulAddr})
 		} else {
-			newProc := Process{S: string(v.Value)}
-			newProc.Start()
-			processes[v.Key] = &newProc
+			newProcesses[v.Key] = &proc
 		}
 	}
-	for k, _ := range processes {
-		if v, _ := processesToKill[k]; v {
-			processes[k].Stop()
-			delete(processes, k)
-		}
+	node.HandleProcesses(newProcesses)
+}
+
+func writeProcess(key string, proc *Process) error {
+	kvPath := path.Join("lj/nodes", util.Hostname(), "run", key)
+	bytes, err := json.Marshal(proc)
+	if err != nil {
+		logger.Error("Error encoding process as JSON", gomaplog.Extras{"error": err, "key": kvPath})
+		return err
 	}
+	err = kvClient.Put(key, bytes, 0)
+	if err != nil {
+		logger.Error("Error writing process info to Consul", gomaplog.Extras{"error": err, "key": kvPath, "consul": options.consulAddr})
+		return err
+	}
+	return nil
 }

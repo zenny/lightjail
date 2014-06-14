@@ -1,8 +1,7 @@
-package main
+package util
 
 import (
 	"encoding/json"
-	"github.com/myfreeweb/lightjail/util"
 	"io/ioutil"
 	"path/filepath"
 )
@@ -25,7 +24,7 @@ func (overlay *Overlay) Save(path string) {
 }
 
 func ReadOverlay(path string) Overlay {
-	bytes := util.MustReadFile(path)
+	bytes := MustReadFile(path)
 	var overlay Overlay
 	err := json.Unmarshal(bytes, &overlay)
 	if err != nil {
@@ -34,13 +33,13 @@ func ReadOverlay(path string) Overlay {
 	return overlay
 }
 
-func (overlay *Overlay) GetFromPaths(rootDir string) []string {
+func (overlay *Overlay) GetFromPaths() []string {
 	paths := []string{}
 	if overlay.From != nil {
-		unversionedPath := filepath.Join(rootDir, overlay.From.Name)
-		path := filepath.Join(unversionedPath, util.FindMaxVersionFile(unversionedPath, overlay.From.Version))
+		unversionedPath := filepath.Join(RootDir(), overlay.From.Name)
+		path := filepath.Join(unversionedPath, FindMaxVersionFile(unversionedPath, overlay.From.Version))
 		parent := ReadOverlay(filepath.Join(path, "overlay.json"))
-		paths = append(paths, parent.GetFromPaths(rootDir)...)
+		paths = append(paths, parent.GetFromPaths()...)
 		paths = append(paths, path)
 	}
 	return paths

@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/myfreeweb/lightjail/util"
 	"strings"
 )
 
 type Script struct {
-	Overlay
+	util.Overlay
 	WorldVersion string
 	Buildscript  string
 	CopyDst      string

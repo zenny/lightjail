@@ -22,7 +22,7 @@ func (jail *Buildjail) GetWorldDir() string {
 }
 
 func (jail *Buildjail) GetFromPaths() []string {
-	return jail.Script.Overlay.GetFromPaths(jail.RootDir)
+	return jail.Script.Overlay.GetFromPaths()
 }
 
 func (jail *Buildjail) MustMakeOverlayDir() {
