@@ -3,6 +3,7 @@ package util
 import (
 	"crypto/rand"
 	"encoding/base32"
+	"math/big"
 	"os"
 	"os/exec"
 	"regexp"
@@ -53,4 +54,10 @@ func Hostname() string {
 		return "localhost"
 	}
 	return host
+}
+
+func FreeIPAddr() string {
+	// TODO: make this an actual thing
+	i, _ := rand.Int(rand.Reader, big.NewInt(255))
+	return "127.0.0." + i.String()
 }
