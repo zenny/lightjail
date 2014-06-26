@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-        "github.com/myfreeweb/lightjail/util"
+	"github.com/myfreeweb/lightjail/util"
 )
 
 type Buildjail struct {

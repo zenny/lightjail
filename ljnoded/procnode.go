@@ -74,7 +74,7 @@ func (node *ProcNode) HandleProcesses(processes map[string]*Process) {
 func (node *ProcNode) Start(process *Process, uid string) {
 	ipAddr := util.FreeIPAddr()
 	jsonOption := ""
-	if options.logJson {
+	if options.logJSON {
 		jsonOption = "-j"
 	}
 	process.mountPoint = util.MustTempDir("ljnoded-")

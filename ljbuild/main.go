@@ -73,14 +73,14 @@ func runJailfile(path string) {
 	defer mounter.Cleanup()
 	jail.Mount(mounter)
 	runner := new(util.Runner)
-	startHandlingInterrupts(runner)
+	startHandlingInterrupts(runner, mounter)
 	exitCode := <-runner.Run(jail.Cmd(), "build")
 	jail.Script.Overlay.Save(filepath.Join(jail.GetOverlayPath(), "overlay.json"))
 	time.Sleep(300 * time.Millisecond) // Wait for jail removal, just in case
 	logger.Info("Build finished", gomaplog.Extras{"status": exitCode})
 }
 
-func startHandlingInterrupts(runner *util.Runner) {
+func startHandlingInterrupts(runner *util.Runner, mounter *util.Mounter) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {

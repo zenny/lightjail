@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
-
-        "github.com/myfreeweb/lightjail/util"
 )
 
 type Overlay struct {

@@ -11,7 +11,7 @@ import (
 
 var options struct {
 	consulAddr, ipIface string
-	logJson             bool
+	logJSON             bool
 }
 
 var logger = gomaplog.StdoutLogger(gomaplog.DefaultTemplateFormatter)
@@ -34,9 +34,9 @@ func main() {
 func parseOptions() {
 	flag.StringVar(&options.consulAddr, "c", "127.0.0.1:8500", "host:port of the nearest Consul agent")
 	flag.StringVar(&options.ipIface, "f", "default", "network interface for the jails")
-	flag.BoolVar(&options.logJson, "j", false, "log in JSON (GELF 1.1) format")
+	flag.BoolVar(&options.logJSON, "j", false, "log in JSON (GELF 1.1) format")
 	flag.Parse()
-	if options.logJson {
+	if options.logJSON {
 		logger = gomaplog.StdoutLogger(gomaplog.DefaultJSONFormatter)
 	}
 	if options.ipIface == "default" {
